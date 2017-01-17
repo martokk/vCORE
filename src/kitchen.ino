@@ -136,6 +136,7 @@ void setup() {
 
   // Start DHT
   dht.begin();
+
 }
 
 /***************** MAIN LOOP ********************************/
@@ -491,8 +492,6 @@ void reconnect() {
     if (client.connect(DEVICE_NAME, MQTT_USER, MQTT_PASS)) {
       Serial.println("connected");
 
-      client.publish(debugpub, "Device kitchen connected to MQTT.");
-
       client.subscribe(setcolorsub);
       client.subscribe(setbrightnesssub);
       //client.subscribe(setcolortemp);
@@ -509,6 +508,9 @@ void reconnect() {
       ws2812fx.setMode(FX_MODE_STATIC);
       ws2812fx.service();
 
+      //send 'Device Connected' notification to MQTT server (handled by Home Assistant automation)
+      client.publish(debugpub, "connected");
+      
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
