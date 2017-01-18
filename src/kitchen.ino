@@ -2,51 +2,52 @@
 
 /********** DEVICE ***************************************/
   #define DEVICE_NAME "kitchen" //Must be unique on Network.
-  #define debugpub "device/kitchen"
+  #define devicepub "device/kitchen"
+  #define debugpub "device/kitchen/debug"
 
 /********** LEDs ***************************************/
   #include <WS2812FX.h>
 
-  #define setcolorsub "ledstrip/kitchen/setcolor"
-  #define setpowersub "ledstrip/kitchen/setpower"
-  #define seteffectsub "ledstrip/kitchen/seteffect"
-  #define setbrightnesssub "ledstrip/kitchen/setbrightness"
-  #define setanimationspeedsub "ledstrip/kitchen/setanimationspeed"
+  #define setcolorsub "device/kitchen/setcolor"
+  #define setpowersub "device/kitchen/setpower"
+  #define seteffectsub "device/kitchen/seteffect"
+  #define setbrightnesssub "device/kitchen/setbrightness"
+  #define setanimationspeedsub "device/kitchen/setanimationspeed"
 
-  #define setcolorpub "ledstrip/kitchen/setcolorpub"
-  #define setpowerpub "ledstrip/kitchen/setpowerpub"
-  #define seteffectpub "ledstrip/kitchen/seteffectpub"
-  #define setbrightnesspub "ledstrip/kitchen/setbrightnesspub"
-  #define setanimationspeedpub "ledstrip/kitchen/setanimationspeedpub"
+  #define setcolorpub "device/kitchen/setcolorpub"
+  #define setpowerpub "device/kitchen/setpowerpub"
+  #define seteffectpub "device/kitchen/seteffectpub"
+  #define setbrightnesspub "device/kitchen/setbrightnesspub"
+  #define setanimationspeedpub "device/kitchen/setanimationspeedpub"
 
   #define LED_COUNT 86
   #define LED_PIN D1
   int powerMax = 255; // 0 to 255
 
-/********** PIR MOTION SENSORS ***************************************/
-  #define motion_topic "binary_sensor/kitchen_motion"
+  /********** PIR MOTION SENSORS ***************************************/
+    #define motion_topic "device/kitchen/motion"
 
-  int pirPin1 = D5;
-  int pirPin2 = D6;
-  int pirPin3 = D7;
-  int calibrationTime = 5; // in Seconds
-  int pirDelay = 500; // Delay between loop()
-  int pirRearmDelay = 500;  // in miliSeconds; Number of seconds without movement before the sensor will re-arm
-  int pir3RearmDelay = 5000;  // in miliSeconds; Number of seconds without movement before the sensor will re-arm
-  int mqttRearmDelay = 8000; // in millisecond; Will re-send mqtt status when PIR active
+    int pirPin1 = D5;
+    int pirPin2 = D6;
+    int pirPin3 = D7;
+    int calibrationTime = 15; // in Seconds
+    int pirDelay = 500; // Delay between loop()
+    int pirRearmDelay = 500;  // in miliSeconds; Number of seconds without movement before the sensor will re-arm
+    int pir3RearmDelay = 5000;  // in miliSeconds; Number of seconds without movement before the sensor will re-arm
+    int mqttRearmDelay = 8000; // in millisecond; Will re-send mqtt status when PIR active
 
-/********** DHT SENSORS ***************************************/
-  #include <DHT.h>
+  /********** DHT SENSORS ***************************************/
+    #include <DHT.h>
 
-  #define humidity_topic "sensor/kitchen_humidity"
-  #define temperature_topic "sensor/kitchen_temperature"
+    #define humidity_topic "device/kitchen/humidity"
+    #define temperature_topic "device/kitchen/temperature"
 
-  #define DHTPIN D2     // what digital pin we're connected to
-  #define DHTTYPE DHT11
-  int dhtDelay = 12000;
-  int dhtOffset = 6; //degress +/- to offest sensor. Use to calibrate DHT sensor to known temp.
+    #define DHTPIN D2     // what digital pin we're connected to
+    #define DHTTYPE DHT11
+    int dhtDelay = 12000;
+    int dhtOffset = 6; //degress +/- to offest sensor. Use to calibrate DHT sensor to known temp.
 
-  DHT dht(DHTPIN, DHTTYPE);
+    DHT dht(DHTPIN, DHTTYPE);
 
 
 
