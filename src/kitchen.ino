@@ -103,17 +103,11 @@ void setup() {
   // Start WS8212FX
   ws2812fx.init();
   ws2812fx.setBrightness(80);
-  ws2812fx.setSpeed(235);
   ws2812fx.setColor(0,255,255); // Purple
+  ws2812fx.setSpeed(175);
   ws2812fx.setMode(FX_MODE_STATIC);
   ws2812fx.start();
   ws2812fx.service();
-
-  // Start PIR
-  pinMode(pirPin1, INPUT);
-  pinMode(pirPin2, INPUT);
-  pinMode(pirPin3, INPUT);
-  setup_pir();
   delay(3000);
 
   // Start WIFI
@@ -135,9 +129,13 @@ void setup() {
   client.setServer(MQTT_SERVER, 1883); //CHANGE PORT HERE IF NEEDED
   client.setCallback(callback);
 
+  // Start PIR
+  pinMode(pirPin1, INPUT);
+  pinMode(pirPin2, INPUT);
+  pinMode(pirPin3, INPUT);
+
   // Start DHT
   dht.begin();
-
 }
 
 /***************** MAIN LOOP ********************************/
@@ -189,12 +187,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     if (setPower == "OFF") {
       ws2812fx.stop();
-      ws2812fx.setMode(FX_MODE_STATIC);
       client.publish(setpowerpub, "OFF");
     }
 
     if (setPower == "ON") {
       ws2812fx.start();
+      ws2812fx.service();
       client.publish(setpowerpub, "ON");
     }
   }
@@ -211,7 +209,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
     ws2812fx.service();
 
     Serial.println("Set Effect: " + setEffect);
-    // client.publish(seteffectpub, message_buff);
+    setPower = "ON";
+    client.publish(setpowerpub, "ON");
+    client.publish(seteffectpub, message_buff);
   }
 
   /********** BRIGHTNESS ****************/
@@ -237,8 +237,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
 
     ws2812fx.setBrightness(newBrightness);
+    ws2812fx.service();
 
-    // client.publish(setbrightnesspub, message_buff);
+    setPower = "ON";
+    client.publish(setpowerpub, "ON");
+    client.publish(setbrightnesspub, message_buff);
   }
 
   /********** COLOR ****************/
@@ -267,9 +270,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     ws2812fx.setBrightness(newBrightness);
     ws2812fx.setColor(Rcolor,Bcolor,Gcolor);
-    ws2812fx.setMode(FX_MODE_STATIC);
+    ws2812fx.service();
 
     Serial.println("Set Color: " + setColor);
+    setPower = "ON";
+    client.publish(setpowerpub, "ON");
+    client.publish(setcolorpub, message_buff);
     }
 
   /********** ANIMATION SPEED ****************/
@@ -281,7 +287,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     setAnimationSpeed = String(message_buff);
     animationspeed = setAnimationSpeed.toInt();
     ws2812fx.setSpeed(animationspeed); //map
-    // client.publish(setanimationspeedpub, message_buff);
+    ws2812fx.service();
+    client.publish(setanimationspeedpub, message_buff);
   }
 }
 
@@ -298,23 +305,6 @@ bool motionState3 = false;
 int mqttRearmTime = 0;
 int pirRearmTime = 0;
 int pir3RearmTime = 0;
-
-void setup_pir(){
-  // PIR CALIBRATION
-  delay(10);
-
-  digitalWrite(pirPin1, LOW);
-  digitalWrite(pirPin2, LOW);
-  digitalWrite(pirPin3, LOW);
-
-  Serial.print("PIR Calibrating");
-  for (int i = 0; i < calibrationTime; i++) {
-    Serial.print(".");
-    delay(500);
-  }
-  Serial.println("  COMPLETE.");
-  Serial.println("SENSOR ACTIVE");
-}
 
 void checkPIR() {
   if (now > pirDelay) {
@@ -343,6 +333,7 @@ void checkPIR() {
         client.publish(motion_topic, "1", true);
         mqttRearmTime = millis() + mqttRearmDelay;
         ws2812fx.start();
+        ws2812fx.service();
         client.publish(setpowerpub, "ON");
       } else {
         if (millis() > mqttRearmTime) {
@@ -362,6 +353,7 @@ void checkPIR() {
         if (millis() > pir3RearmTime) {
           if (motionState3 == true) {
             ws2812fx.setMode(FX_MODE_COLOR_WIPE_RANDOM);
+            ws2812fx.service();
             motionState3 = false;
           }
         }
@@ -386,7 +378,7 @@ void checkPIR() {
 
 /********** DHT CODE ***************************************/
 int dhtTime = 0;
-
+bool dhtReconnect = true;
 void checkDHT(){
   if (millis() > dhtTime) {
     float h = dht.readHumidity();
@@ -394,10 +386,18 @@ void checkDHT(){
     float f = dht.readTemperature(true) + dhtOffset;
 
     if (isnan(h) || isnan(t) || isnan(f)) {
-      Serial.println("Failed to read from DHT sensor!");
+      if (dhtReconnect == false) {
+        Serial.println("Failed to read from DHT sensor!");
+        client.publish(debugpub, "DHT sensor  === OFFLINE ===");
+        dhtReconnect = true;
+      }
       return;
     }
 
+    if (dhtReconnect == true) {
+      client.publish(debugpub, "DHT sensor  online");
+      dhtReconnect = false;
+    }
     // Compute heat index in Fahrenheit (the default)
     float hif = dht.computeHeatIndex(f, h);
     // Compute heat index in Celsius (isFahreheit = false)
@@ -487,11 +487,17 @@ void setup_ota() {
 /********** MQTT ***************************************/
 void reconnect() {
   // Loop until we're reconnected
+  int retry = 0;
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection (kitchen)...");
     // Attempt to connect
     if (client.connect(DEVICE_NAME, MQTT_USER, MQTT_PASS)) {
       Serial.println("connected");
+
+      client.publish(debugpub, "Device kitchen connected to MQTT.");
+
+      ws2812fx.setColor(255,255,255);
+      ws2812fx.service();
 
       client.subscribe(setcolorsub);
       client.subscribe(setbrightnesssub);
@@ -502,16 +508,12 @@ void reconnect() {
 
       client.publish(setpowerpub, "ON");
       client.publish(setcolorpub, "255,255,255");
+      //
+      // //send 'Device Connected' notification to MQTT server (handled by Home Assistant automation)
+      // client.publish(devicepub, "connected");
 
-      delay(1000);
+      retry = 0;
 
-      ws2812fx.setColor(175, 255, 110); // White (Color-Corrected)
-      ws2812fx.setMode(FX_MODE_STATIC);
-      ws2812fx.service();
-
-      //send 'Device Connected' notification to MQTT server (handled by Home Assistant automation)
-      client.publish(debugpub, "connected");
-      
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -521,8 +523,15 @@ void reconnect() {
       ws2812fx.setMode(FX_MODE_STATIC);
       ws2812fx.service();
 
-      delay(5000);
-      // ESP.reset();
+      delay(3000);
+      retry = retry + 1;
+      if (retry > 5) {
+        ws2812fx.setColor(255,0,255);
+        ws2812fx.service();
+        delay(3000);
+        ESP.reset();
+      }
+
     }
   }
 }
