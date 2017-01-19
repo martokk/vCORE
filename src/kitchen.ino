@@ -29,7 +29,7 @@
 
     int pirPin1 = D5;
     int pirPin2 = D6;
-    int pirPin3 = D7;
+    int pirPin3 = D7; // PIR Over Sink
     int calibrationTime = 15; // in Seconds
     int pirDelay = 500; // Delay between loop()
     int pirRearmDelay = 500;  // in miliSeconds; Number of seconds without movement before the sensor will re-arm
@@ -44,7 +44,7 @@
 
     #define DHTPIN D2     // what digital pin we're connected to
     #define DHTTYPE DHT11
-    int dhtDelay = 12000;
+    int dhtDelay = 30000; // 30 Seconds
     int dhtOffset = 6; //degress +/- to offest sensor. Use to calibrate DHT sensor to known temp.
 
     DHT dht(DHTPIN, DHTTYPE);
@@ -77,7 +77,7 @@ String setBrightness = "50";
 String setAnimationSpeed = "255";
 String setColorTemp;
 
-int setEffect = FX_MODE_RAINBOW;
+int setEffect = FX_MODE_STATIC;
 int brightness = 50;
 int animationspeed = 255;
 int Rcolor = 0;
@@ -108,24 +108,24 @@ void setup() {
   ws2812fx.setMode(FX_MODE_STATIC);
   ws2812fx.start();
   ws2812fx.service();
-  delay(3000);
+  delay(1000);
 
   // Start WIFI
   ws2812fx.setColor(255,0,0); // Green
   ws2812fx.service();
   setup_wifi();
-  delay(1000);
+  delay(500);
 
   // Start OTA
   ws2812fx.setColor(0,255,0); // Red
   ws2812fx.service();
   setup_ota();
-  delay(1000);
+  delay(500);
 
   // Start MQTT
   ws2812fx.setColor(0,0,255); // Blue
   ws2812fx.service();
-  delay(1000);
+  delay(500);
   client.setServer(MQTT_SERVER, 1883); //CHANGE PORT HERE IF NEEDED
   client.setCallback(callback);
 
@@ -324,11 +324,7 @@ void checkPIR() {
         // Serial.print(millis() / 1000);
         // Serial.println(" sec");
         if (motionState3 == false) {
-          if (ws2812fx.getBrightness() < 100){
-            ws2812fx.setBrightness(180);
-          }
-          ws2812fx.setSpeed(245);
-          ws2812fx.setMode(FX_MODE_COLOR_WIPE_RANDOM);
+          ws2812fx.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
         }
         client.publish(motion_topic, "1", true);
         mqttRearmTime = millis() + mqttRearmDelay;
@@ -345,14 +341,14 @@ void checkPIR() {
       if (pir3State == HIGH) {
         if (motionState3 == false) {
           motionState3 = true;
-          ws2812fx.setMode(FX_MODE_COLOR_WIPE_TO_WHITE);
+          ws2812fx.setMode(FX_MODE_VHOME_WIPE_TO_WHITE);
           ws2812fx.service();
         }
       pir3RearmTime = millis() + pir3RearmDelay;
       } else {
         if (millis() > pir3RearmTime) {
           if (motionState3 == true) {
-            ws2812fx.setMode(FX_MODE_COLOR_WIPE_RANDOM);
+            ws2812fx.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
             ws2812fx.service();
             motionState3 = false;
           }
@@ -495,6 +491,11 @@ void reconnect() {
       Serial.println("connected");
 
       client.publish(debugpub, "Device kitchen connected to MQTT.");
+      client.publish(setpowerpub, "ON");
+      client.publish(setcolorpub, "255,255,255");
+
+      // send 'Device Connected' notification to MQTT server
+      client.publish(devicepub, "connected");
 
       ws2812fx.setColor(255,255,255);
       ws2812fx.service();
@@ -506,11 +507,7 @@ void reconnect() {
       client.subscribe(seteffectsub);
       client.subscribe(setanimationspeedsub);
 
-      client.publish(setpowerpub, "ON");
-      client.publish(setcolorpub, "255,255,255");
-      //
-      // //send 'Device Connected' notification to MQTT server (handled by Home Assistant automation)
-      // client.publish(devicepub, "connected");
+
 
       retry = 0;
 
