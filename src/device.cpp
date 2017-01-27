@@ -22,6 +22,7 @@ uint8_t LimitLedBrightness(uint8_t _red, uint8_t _green, uint8_t _blue, uint8_t 
 void CheckDeviceReset();
 void CheckDht();
 void CheckPir();
+void CheckLedsOn();
 
 int reset_button_state = 0;
 bool device_reset = true;
@@ -523,16 +524,6 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     message_buff[i] = '\0';
     set_power = String(message_buff);
 
-    Serial.println("Set Power: " + set_power);
-
-    if (set_power == "OFF" && led1.isRunning() == true) {
-      led1.stop();
-      client.publish(PUB_LED1_POWER, "OFF");
-    }
-    if (set_power == "ON" && led1.isRunning() == false) {
-      led1.start();
-      client.publish(PUB_LED1_POWER, "ON");
-    }
   }
 
   /********** EFFECT ****************/
@@ -547,6 +538,7 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
 
     if (_get_mode != _set_effect) {
       // Serial.println("Get Effect: " + String(led1.getMode()));
+      set_power == "ON";
       led1.setMode(_set_effect);
       Serial.println("Set Effect: " + String(message_buff));
 
@@ -571,6 +563,7 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     uint8_t _get_brightness = led1.getBrightness();
 
     if (last_brightness != new_brightness) {
+      set_power == "ON";
       led1.setBrightness(new_brightness);
       Serial.println("Set Brightness: " + set_brightness);
       client.publish(PUB_DEBUG, String("get: " + String(_get_brightness) + ";  set: " + String(set_brightness)).c_str(), true);
@@ -596,6 +589,7 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     uint8_t _get_brightness = led1.getBrightness();
 
     if (_get_color != _set_color) {
+      set_power == "ON";
       client.publish(PUB_DEBUG, String("get: " + String(_get_color) + ";  set: " + String(_set_color)).c_str(), true);
 
       new_brightness = LimitLedBrightness(r_color, b_color, g_color, brightness);
@@ -623,8 +617,24 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     uint8_t _get_speed = led1.getSpeed();
 
     if (_get_speed != _set_speed) {
+      set_power == "ON";
       led1.setSpeed(_set_speed);
       client.publish(PUB_LED1_SPEED, message_buff);
     }
   }
+
+  CheckLedsOn();
+
+}
+
+void CheckLedsOn(){
+  if (set_power == "OFF" && led1.isRunning() == true) {
+    led1.stop();
+    client.publish(PUB_LED1_POWER, "OFF");
+  }
+  if (set_power == "ON" && led1.isRunning() == false) {
+    led1.start();
+    client.publish(PUB_LED1_POWER, "ON");
+  }
+  Serial.println("Set Power: " + set_power);
 }
