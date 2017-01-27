@@ -97,10 +97,10 @@ void setup() {
   }
 
   // Start WS8212FX
-  led1.init();
+
   // led1.setBrightness(80);
   // led1.setColor(0,255,255); // Purple
-  // led1.setSpeed(175);
+  // led1.setSpeed(235);
   // led1.setMode(FX_MODE_STATIC);
   // led1.start();
   // led1.service();
@@ -123,7 +123,6 @@ void setup() {
   // led1.service();
   client.setServer(MQTT_SERVER, 1883); //CHANGE PORT HERE IF NEEDED
   client.setCallback(MqttCallback);
-  delay(2000);
 
   // Start PIR
   switch(TOTAL_PIR_SENSORS) {
@@ -144,6 +143,8 @@ void setup() {
   if (TOTAL_DHT_SENSORS > 0) {
     dht.begin();
   }
+
+    led1.init();
 }
 
 
@@ -391,13 +392,14 @@ void ReconnectMqtt() {
   // Loop until we're reconnected
   int retry = 0;
   while (!client.connected()) {
+    ArduinoOTA.handle();
     Serial.print("MQTT: ");
     // Attempt to connect
     if (client.connect(DEVICE_NAME, MQTT_USER, MQTT_PASS)) {
       Serial.println("Connected");
 
-      client.publish(PUB_LED1_POWER, "ON");
-      client.publish(PUB_LED1_COLOR, "255,255,255");
+      // client.publish(PUB_LED1_POWER, "ON");
+      // client.publish(PUB_LED1_COLOR, "255,255,255");
 
       //send 'Device Restarted' notification to MQTT server
       if (device_reset == true) {
@@ -407,8 +409,8 @@ void ReconnectMqtt() {
       // send 'Device Connected' notification to MQTT server
       client.publish(PUB_DEVICE, "connected");
 
-      led1.setColor(255,255,255);
-      led1.service();
+      // led1.setColor(255,255,255);
+      // led1.service();
 
       client.subscribe(SUB_LED1_POWER);
       client.subscribe(SUB_LED1_COLOR);
@@ -429,79 +431,15 @@ void ReconnectMqtt() {
       Serial.print("; retry=");
       Serial.print(retry);
 
-      led1.setColor(0,0,255); // Blue
-      led1.setMode(FX_MODE_STATIC);
-
-      led1.start();
-      led1.service();
-      delay(500);
-
-      led1.stop();
-      led1.service();
-      delay(500);
-
-      led1.start();
-      led1.service();
-      delay(500);
-
-      led1.stop();
-      led1.service();
-      delay(500);
+      if (WiFi.status() != WL_CONNECTED) {
+        SetupWifi();
+      }
+      // led1.setColor(255,0,0);
+      // led1.service();
 
       retry = retry + 1;
-      if (retry >= 10) {
+      if (retry >= 2) {
         Serial.println("MQTT Failed: Resetting Device");
-
-        led1.setColor(255,0,255);
-
-        led1.start();
-        led1.service();
-        delay(250);
-
-        led1.stop();
-        led1.service();
-        delay(250);
-
-        led1.start();
-        led1.service();
-        delay(250);
-
-        led1.stop();
-        led1.service();
-        delay(250);
-
-        led1.start();
-        led1.service();
-        delay(250);
-
-        led1.stop();
-        led1.service();
-        delay(250);
-
-        led1.start();
-        led1.service();
-        delay(250);
-
-        led1.stop();
-        led1.service();
-        delay(250);
-
-        led1.start();
-        led1.service();
-        delay(250);
-
-        led1.stop();
-        led1.service();
-        delay(250);
-
-        led1.start();
-        led1.service();
-        delay(250);
-
-        led1.stop();
-        led1.service();
-        delay(250);
-
         ESP.reset();
       }
     }
@@ -537,7 +475,6 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     uint8_t _get_mode = led1.getMode();
 
     if (_get_mode != _set_effect) {
-      // Serial.println("Get Effect: " + String(led1.getMode()));
       set_power == "ON";
       led1.setMode(_set_effect);
       Serial.println("Set Effect: " + String(message_buff));
@@ -595,7 +532,7 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
       new_brightness = LimitLedBrightness(r_color, b_color, g_color, brightness);
       if (_get_brightness != new_brightness) {
         led1.setBrightness(new_brightness);
-        client.publish(PUB_LED1_BRIGHTNESS, message_buff);
+        client.publish(PUB_LED1_BRIGHTNESS, String(new_brightness).c_str());
       }
       // led1.setMode(FX_MODE_STATIC);
       led1.setColor(r_color,g_color,b_color);
