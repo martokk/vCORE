@@ -235,6 +235,7 @@ void CheckPir() {
       // Kitchen Light Only (3rd Motion Sensor)
       if (pir3_state == HIGH) {
         if (pir3_motion_state == false) {
+          client.publish(PUB_PIR3, "1", true);
           pir3_motion_state = true;
           led1.setMode(FX_MODE_VHOME_WIPE_TO_WHITE);
           led1.service();
@@ -259,6 +260,7 @@ void CheckPir() {
           Serial.print("Motion Detection Re-armed at ");
           Serial.print(millis() / 1000);
           Serial.println(" sec");
+          client.publish(PUB_PIR3, "0", true);
           client.publish(PUB_PIR1, "0", true);
         }
       }
