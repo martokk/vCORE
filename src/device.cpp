@@ -153,6 +153,15 @@ void setup() {
 /********** MAIN LOOP *********************************************/
 /******************************************************************/
 void loop() {
+  if (!client.connected()) {
+    ReconnectMqtt();
+  }
+  client.loop();
+
+  if (WiFi.status() != WL_CONNECTED) {
+    SetupWifi();
+  }
+
   // Check of OTA Intall Request
   ArduinoOTA.handle();
 
@@ -174,14 +183,7 @@ void loop() {
   // Run WS8212FX service
   led1.service();
 
-  if (!client.connected()) {
-    ReconnectMqtt();
-  }
-  client.loop();
-
-  if (WiFi.status() != WL_CONNECTED) {
-    SetupWifi();
-  }
+  delay(10);
 }
 
 
