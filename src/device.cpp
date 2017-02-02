@@ -61,6 +61,7 @@ char message_buff[100];
 bool pir1_motion_state = false;
 bool pir2_motion_state = false;
 bool pir3_motion_state = false;
+int pir_state = 0;
 int mqtt_rearm_time = 0;
 int pir1_rearm_time = 0;
 int pir3_rearm_time = 0;
@@ -168,7 +169,9 @@ void loop() {
 
   // Check DHT
   if (TOTAL_DHT_SENSORS > 0) {
-    CheckDht();
+    if (pir_state == 0) {
+      CheckDht();
+    }
   }
 
   // Run WS8212FX service
@@ -208,64 +211,57 @@ void CheckPir() {
     int pir1_state = digitalRead(PIR1_PIN);
     int pir2_state = digitalRead(PIR2_PIN);
     int pir3_state = digitalRead(PIR3_PIN);
-    int pir_state = pir1_state + pir2_state + pir3_state;
-    // Serial.println(pir_state);
+    pir_state = pir1_state + pir2_state + pir3_state;
 
     if (pir_state > 0) {
-      if (pir1_motion_state == false) {
+
+      // Check PIR 1
+      if (pir1_motion_state == false || millis() > mqtt_rearm_time) {
         pir1_motion_state = true;
 
-        // Serial.print("motion detected at ");
-        // Serial.print(millis() / 1000);
-        // Serial.println(" sec");
-        if (pir3_motion_state == false) {
-          led1.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
+        if (pir3_motion_state == false ) {
+          if (led1.getMode() != FX_MODE_VHOME_WIPE_TO_RANDOM ) {
+            led1.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
+          }
         }
         client.publish(PUB_PIR1, "1", true);
         mqtt_rearm_time = millis() + PIR_MQTT_RETRIGGER_DELAY;
-        led1.start();
-        led1.service();
-        client.publish(PUB_LED1_POWER, "ON");
-      } else {
-        if (millis() > mqtt_rearm_time) {
-          client.publish(PUB_PIR1, "1", true);
-          mqtt_rearm_time = millis() + PIR_MQTT_RETRIGGER_DELAY;
-        }
+        pir1_rearm_time = millis() + PIR1_REARM_DELAY;
       }
-      // Kitchen Light Only (3rd Motion Sensor)
-      if (pir3_state == HIGH) {
-        if (pir3_motion_state == false) {
-          client.publish(PUB_PIR3, "1", true);
-          pir3_motion_state = true;
-          led1.setMode(FX_MODE_VHOME_WIPE_TO_WHITE);
-          led1.service();
-        }
-      pir3_rearm_time = millis() + PIR3_REARM_DELAY;
-      } else {
-        if (millis() > pir3_rearm_time) {
-          if (pir3_motion_state == true) {
-            led1.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
-            led1.service();
-            pir3_motion_state = false;
-          }
-        }
-      }
-      pir1_rearm_time = millis() + PIR3_REARM_DELAY;
-    } else {
-      if (pir1_motion_state == true) {
-        if (millis() > pir1_rearm_time) {
-          pir1_motion_state = false;
-          pir3_motion_state = false;
 
-          Serial.print("Motion Detection Re-armed at ");
-          Serial.print(millis() / 1000);
-          Serial.println(" sec");
-          client.publish(PUB_PIR3, "0", true);
-          client.publish(PUB_PIR1, "0", true);
+      // Check PIR 3
+      if (pir3_state == HIGH) {
+        if (pir3_motion_state == false || millis() > mqtt_rearm_time) {
+          pir3_motion_state = true;
+          if (led1.getMode() != FX_MODE_VHOME_WIPE_TO_WHITE) {
+            led1.setMode(FX_MODE_VHOME_WIPE_TO_WHITE);
+          }
+          client.publish(PUB_PIR3, "1", true);
+          pir3_rearm_time = millis() + PIR3_REARM_DELAY;
         }
+      } else {
+        if (pir3_motion_state == true && millis() > pir3_rearm_time) {
+          pir3_motion_state = false ;
+          led1.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
+          client.publish(PUB_PIR3, "0", true);
+        }
+      }
+
+      if (led1.isRunning() == false) {
+        led1.start();
+      }
+
+    // All PIR = LOW then Reset all
+    } else {
+      if (millis() > pir1_rearm_time && (pir1_motion_state == true || pir3_motion_state == true)) {
+        pir1_motion_state = false;
+        pir3_motion_state = false;
+        client.publish(PUB_PIR3, "0", true);
+        client.publish(PUB_PIR1, "0", true);
       }
     }
-    pir_interval_time = millis() + 200;
+
+    pir_interval_time = millis() + PIR_LOOP_INERVAL;
   }
 }
 
