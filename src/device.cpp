@@ -537,7 +537,7 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
         led1.setBrightness(new_brightness);
         client.publish(PUB_LED1_BRIGHTNESS, String(new_brightness).c_str());
       }
-      // led1.setMode(FX_MODE_STATIC);
+      led1.setMode(FX_MODE_STATIC);
       led1.setColor(r_color,g_color,b_color);
 
       Serial.println("Set Color: " + set_color);
