@@ -216,16 +216,20 @@ void CheckPir() {
     if (pir_state > 0) {
 
       // Check PIR 1
-      if (pir1_motion_state == false || millis() > mqtt_rearm_time) {
-        pir1_motion_state = true;
+      if (pir1_state == HIGH || pir2_state == HIGH) {
+        if (pir1_motion_state == false) {
+          pir1_motion_state = true;
 
-        if (pir3_motion_state == false && pir3_state == LOW ) {
-          if (led1.getMode() != FX_MODE_VHOME_WIPE_TO_RANDOM ) {
-            led1.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
+          if (pir3_motion_state == false && pir3_state == LOW ) {
+            if (led1.getMode() != FX_MODE_VHOME_WIPE_TO_RANDOM ) {
+              led1.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
+            }
           }
         }
-        client.publish(PUB_PIR1, "1", true);
-        mqtt_rearm_time = millis() + PIR_MQTT_RETRIGGER_DELAY;
+        if (pir1_motion_state == false || millis() > mqtt_rearm_time) {
+          client.publish(PUB_PIR1, "1", true);
+          mqtt_rearm_time = millis() + PIR_MQTT_RETRIGGER_DELAY;
+        }
         pir1_rearm_time = millis() + PIR1_REARM_DELAY;
       }
 
@@ -240,10 +244,10 @@ void CheckPir() {
         if (millis() > mqtt_rearm_time) {
           client.publish(PUB_PIR1, "1", true);
           client.publish(PUB_PIR3, "1", true);
-          pir1_rearm_time = millis() + PIR1_REARM_DELAY;
-          pir3_rearm_time = millis() + PIR3_REARM_DELAY;
           mqtt_rearm_time = millis() + PIR_MQTT_RETRIGGER_DELAY;
         }
+        pir1_rearm_time = millis() + PIR1_REARM_DELAY;
+        pir3_rearm_time = millis() + PIR3_REARM_DELAY;
       } else {
         if (pir3_motion_state == true && millis() > pir3_rearm_time) {
           pir3_motion_state = false ;
