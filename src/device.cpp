@@ -285,7 +285,7 @@ void CheckPir() {
   } else { // Only 1 PIR Sensor
     if (millis() > pir_interval_time) {
       int pir1_state = digitalRead(PIR1_PIN);
-      pir_state = pir1_state
+      pir_state = pir1_state;
 
       if (pir_state > 0) {
 
