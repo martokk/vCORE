@@ -282,7 +282,7 @@ void CheckPir() {
 
       pir_interval_time = millis() + PIR_LOOP_INERVAL;
     }
-  } else { // Only 1 PIR Sensor
+  } else { // Only 1 PIR
     if (millis() > pir_interval_time) {
       int pir1_state = digitalRead(PIR1_PIN);
       pir_state = pir1_state;
@@ -293,7 +293,6 @@ void CheckPir() {
         if (pir1_state == HIGH) {
           if (pir1_motion_state == false) {
             pir1_motion_state = true;
-            }
           }
           if (pir1_motion_state == false || millis() > mqtt_rearm_time) {
             client.publish(PUB_PIR1, "1", true);
