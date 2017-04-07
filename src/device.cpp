@@ -469,6 +469,8 @@ void ReconnectMqtt() {
       client.subscribe(SUB_LED1_BRIGHTNESS);
       client.subscribe(SUB_LED1_EFFECT);
       client.subscribe(SUB_LED1_SPEED);
+      
+      client.publish(PUB_LED1_POWER, "ON");
 
       // Device is now Ready!
       if (device_ready == false) {
