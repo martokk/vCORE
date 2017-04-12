@@ -36,17 +36,14 @@ vCORE Universal IoT Device v0.1.1
 
   #define PIR1_PIN                  D0        // Arduiuno Pin
   #define PIR1_MODE                 0         // 1 = Sensor Only; 2 = Sensor & LEDs
-  #define PIR1_REARM_MODE           0         // 0 = Use PIR1; 1 = Use own
   #define PIR1_REARM_DELAY          3000      // Time before PIR triggers back to 0 ("off")
 
   #define PIR2_PIN                  D0        // Arduno pin
   #define PIR2_MODE                 0         // 1 = Sensor Only; 2 = Sensor & LEDs
-  #define PIR2_REARM_MODE           0         // 0 = Use PIR1; 1 = Use own
   #define PIR2_REARM_DELAY          3000      // Time before PIR triggers back to 0 ("off")
 
   #define PIR3_PIN                  D0        // Arduno pin
   #define PIR3_MODE                 0         // 1 = Sensor Only; 2 = Sensor & LEDs
-  #define PIR3_REARM_MODE           1         // 0 = Use PIR1; 1 = Use own
   #define PIR3_REARM_DELAY          5000      // Time before PIR triggers back to 0 ("off")
 
 /********** DHT ***************************************/
