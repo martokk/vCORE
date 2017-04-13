@@ -1,7 +1,10 @@
-/********** vCORE - v0.1.1 ****************************************/
-/******************************************************************/
+/*
+vCORE Universal IoT Device v0.1.2
+  - mike.villarreal@outlook.com
+
+*/
+
 /********** INITALIZATION *****************************************/
-/******************************************************************/
 #include <Arduino.h>          // Required. Using .cpp file insteal .ino
 #include <credentials.h>      // Required. Credentials for Wifi, MQTT, etc.
 #include "config.h"           // Required. Device Configureation File (Edit before final build)

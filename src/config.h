@@ -1,14 +1,6 @@
 /*
-vCORE Universal IoT Device v0.1.1
+vCORE Universal IoT Device v0.1.2
   - mike.villarreal@outlook.com
-
-  REQUIREMENTS
-    - LED Strips (min=1, max=5)
-    - MQTT
-    - WIFI
-  OPTIONAL
-    - PIR (min=0, max=3)
-    - DHT (min=0, max = 1)
 
 */
 
@@ -26,7 +18,6 @@ vCORE Universal IoT Device v0.1.1
 
   #define LED1_PIN                  0         // Arduno pin
   #define LED1_COUNT                0         // Total LEDs
-  // #define LED1_MQTT_MODE            0      // 0 = Use LED1; 1 = Use own
 
 /********** PIR ***************************************/
   #define TOTAL_PIR_SENSORS         0
