@@ -510,7 +510,7 @@ void ReconnectMqtt() {
       retry = retry + 1;
       if (retry >= 10) {
         Serial.println("MQTT Failed: Resetting Device");
-        led1.setColor(255,0,255);
+        led1.setColor(255,255,0);
         led1.start();
         led1.service();
         delay(200);
@@ -519,7 +519,7 @@ void ReconnectMqtt() {
         led1.service();
         delay(200);
 
-        led1.setColor(255,0,255);
+        led1.setColor(255,255,0);
         led1.start();
         led1.service();
         delay(200);
@@ -528,7 +528,7 @@ void ReconnectMqtt() {
         led1.service();
         delay(200);
 
-        led1.setColor(255,0,255);
+        led1.setColor(255,255,0);
         led1.start();
         led1.service();
         delay(200);
