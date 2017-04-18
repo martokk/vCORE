@@ -178,14 +178,14 @@ void loop() {
   // Run WS8212FX service
   led1.service();
 
+  if (WiFi.status() != WL_CONNECTED) {
+    SetupWifi();
+  }
+
   if (!client.connected()) {
     ReconnectMqtt();
   }
   client.loop();
-
-  if (WiFi.status() != WL_CONNECTED) {
-    SetupWifi();
-  }
 }
 
 
@@ -506,6 +506,10 @@ void ReconnectMqtt() {
       }
       // led1.setColor(255,0,0);
       // led1.service();
+
+      if (WiFi.status() != WL_CONNECTED) {
+        SetupWifi();
+      }
 
       retry = retry + 1;
       if (retry >= 10) {
