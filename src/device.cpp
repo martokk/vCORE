@@ -294,7 +294,7 @@ void CheckPir() {
           }
 
         }
-        if (millis() > mqtt_rearm_time) {
+        if (pir3_motion_state == false || millis() > mqtt_rearm_time) {
           client.publish(PUB_PIR1, "1", true);
           client.publish(PUB_PIR3, "1", true);
           mqtt_rearm_time = millis() + PIR_MQTT_RETRIGGER_DELAY;
