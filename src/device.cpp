@@ -285,7 +285,7 @@ void CheckPir() {
           client.publish(PUB_PIR1, "1", true);
           client.publish(PUB_PIR3, "1", true);
           mqtt_rearm_time = millis() + PIR_MQTT_RETRIGGER_DELAY;
-                
+
           //PIR3 Trigger LEDs
           if (PIR3_TRIGGER_MODE == 2) {
             if (led1.getMode() != FX_MODE_VHOME_WIPE_TO_WHITE) {
@@ -413,7 +413,7 @@ void SetupWifi() {
   Serial.println();
   Serial.print("WiFi: ");
 
-  // WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -510,10 +510,6 @@ void ReconnectMqtt() {
       }
       // led1.setColor(255,0,0);
       // led1.service();
-
-      if (WiFi.status() != WL_CONNECTED) {
-        SetupWifi();
-      }
 
       retry = retry + 1;
       if (retry >= 10) {
