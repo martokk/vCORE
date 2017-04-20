@@ -282,7 +282,10 @@ void CheckPir() {
       if (pir3_state == HIGH) {
         if (pir3_motion_state == false ) {
           pir3_motion_state = true;
-
+          client.publish(PUB_PIR1, "1", true);
+          client.publish(PUB_PIR3, "1", true);
+          mqtt_rearm_time = millis() + PIR_MQTT_RETRIGGER_DELAY;
+                
           //PIR3 Trigger LEDs
           if (PIR3_TRIGGER_MODE == 2) {
             if (led1.getMode() != FX_MODE_VHOME_WIPE_TO_WHITE) {
@@ -301,6 +304,7 @@ void CheckPir() {
         }
         pir1_rearm_time = millis() + PIR1_OFF_DELAY;
         pir3_rearm_time = millis() + PIR3_OFF_DELAY;
+
       } else {
         if (pir3_motion_state == true && millis() > pir3_rearm_time) {
           pir3_motion_state = false ;
