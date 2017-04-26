@@ -23,6 +23,7 @@ void ReconnectMqtt();
 void MqttCallback(char* topic, byte* payload, unsigned int length);
 uint8_t LimitLedBrightness(uint8_t _red, uint8_t _green, uint8_t _blue, uint8_t _brightness);
 void CheckDeviceReset();
+void CheckButtons();
 void CheckDht();
 void CheckPir();
 void CheckLedsOn();
@@ -30,6 +31,7 @@ void CheckLedsOn();
 int reset_button_state = 0;
 bool device_reset = true;
 bool device_ready = false;
+int button_loop_interval = 0;
 
 /********** INITALIZE LEDs ***************************************/
 WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
@@ -165,6 +167,11 @@ void loop() {
     CheckDeviceReset();
   }
 
+  // Check MQTT Button
+  if (TOTAL_MQTT_BUTTONS > 0 ) {
+    CheckButtons();
+  }
+
   //Check PIR State
   if (TOTAL_PIR_SENSORS > 0) {
     CheckPir();
@@ -225,6 +232,19 @@ void CheckDeviceReset() {
     led1.stop();
     led1.service();
     ESP.reset();
+  }
+}
+
+/********** CHECK BUTTONS *****************************************/
+void CheckButtons() {
+  int button1_state = LOW;
+  button1_state = digitalRead(BUTTON1_PIN);
+  if (button1_state == HIGH ) {
+    if (millis() > button_loop_interval) {
+      Serial.println("Button1 was pressed!");
+      client.publish(PUB_BUTTON1, "1", true);
+      button_loop_interval = millis() + BUTTON_LOOP_INTERVAL;
+    }
   }
 }
 
@@ -664,11 +684,11 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
 }
 
 void CheckLedsOn(){
-  if (set_power == "OFF" && led1.isRunning() == true) {
+  if (set_power == "OFF") {
     led1.stop();
     client.publish(PUB_LED1_POWER, "OFF");
   }
-  if (set_power == "ON" && led1.isRunning() == false) {
+  if (set_power == "ON") {
     led1.start();
     client.publish(PUB_LED1_POWER, "ON");
   }

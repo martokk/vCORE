@@ -12,6 +12,12 @@ vCORE Universal IoT Device v0.1.2
   #define TOTAL_RESET_BUTTONS       0         // 0 or 1 Buttons to reset device
   #define RESET_BUTTON_PIN          0         // Reset Button Pin
 
+/********** PUSH BUTTON ***************************************/
+  #define TOTAL_MQTT_BUTTONS        0         // 0 or 1 Buttons to reset device
+  #define BUTTON_LOOP_INTERVAL      000       // Interval Between loops
+
+  #define BUTTON1_PIN               0         // Reset Button Pin
+
 /********** LEDs ***************************************/
   #define TOTAL_LED_STRIPS          0         // Supports up to 5 seperate LED Strips
   #define LED_BRIGHTNESS_LIMIT      0         // Limit Brightnes Level (Max = 255)
@@ -49,6 +55,9 @@ vCORE Universal IoT Device v0.1.2
   /*--------- DEVICE --------------*/
     #define PUB_DEVICE              "device/change_me/device"
     #define PUB_DEBUG               "device/change_me/debug"
+
+  /*--------- BUTTON --------------*/
+    #define PUB_BUTTON1            "device/change_me/button1"
 
   /*--------- PIR --------------*/
     #define PUB_PIR1                "device/change_me/pir1"
