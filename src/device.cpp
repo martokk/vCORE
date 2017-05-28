@@ -318,7 +318,7 @@ void CheckPir() {
           //PIR3 Trigger LEDs
           if (PIR3_TRIGGER_MODE == 2) {
             if (led1.getMode() != FX_MODE_STATIC) {
-              led1.setColor(150,115,255); //GBR
+              led1.setColor(150,255,125); //GBR
               led1.setBrightness(255);
               led1.setMode(FX_MODE_STATIC);
               if (led1.isRunning() == false) {
