@@ -287,6 +287,7 @@ void CheckPir() {
             if (pir3_motion_state == false && pir3_state == LOW ) {
               if (led1.getMode() != FX_MODE_RAINBOW_CYCLE ) {
                 led1.setSpeed(215);
+                led1.setBrightness(255);
                 led1.setMode(FX_MODE_RAINBOW_CYCLE);
                 if (led1.isRunning() == false) {
                   led1.start();
@@ -317,7 +318,8 @@ void CheckPir() {
           //PIR3 Trigger LEDs
           if (PIR3_TRIGGER_MODE == 2) {
             if (led1.getMode() != FX_MODE_STATIC) {
-              led1.setColor(150,125,255); //GBR
+              led1.setColor(150,115,255); //GBR
+              led1.setBrightness(255);
               led1.setMode(FX_MODE_STATIC);
               if (led1.isRunning() == false) {
                 led1.start();
@@ -341,6 +343,7 @@ void CheckPir() {
           //PIR1 Trigger LEDs
           if (PIR1_TRIGGER_MODE == 2) {
             led1.setSpeed(215);
+            led1.setBrightness(255);
             led1.setMode(FX_MODE_RAINBOW_CYCLE);
             led1.start();
           }
