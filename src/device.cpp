@@ -6,7 +6,7 @@ vCORE Universal IoT Device v0.1.3
 
 /********** INITALIZATION *****************************************/
 #include <Arduino.h>          // Required. Using .cpp file insteal .ino
-#include <credentials.h>      // Required. Credentials for Wifi, MQTT, etc.
+// #include <credentials.h>      // Required. Credentials for Wifi, MQTT, etc.
 #include "config.h"           // Required. Device Configureation File (Edit before final build)
 #include <WS2812FX.h>         // Required. LED Strips
 // #include "led1.h"         // Required. LED Strips
@@ -27,6 +27,13 @@ void CheckButtons();
 void CheckDht();
 void CheckPir();
 void CheckLedsOn();
+
+#define WIFI_SSID "Rura Penthe"
+#define WIFI_PASS "klingonbirdofprey"
+
+#define MQTT_SERVER "192.168.1.3"
+#define MQTT_USER "username" // homeassistant
+#define MQTT_PASS "42157406"
 
 int reset_button_state = 0;
 bool device_reset = true;
@@ -278,8 +285,8 @@ void CheckPir() {
           //IF PIR_MODE = 2, then Trigger LEDs
           if (PIR1_TRIGGER_MODE == 2) {
             if (pir3_motion_state == false && pir3_state == LOW ) {
-              if (led1.getMode() != FX_MODE_VHOME_WIPE_TO_RANDOM ) {
-                led1.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
+              if (led1.getMode() != FX_MODE_RAINBOW_CYCLE ) {
+                led1.setMode(FX_MODE_RAINBOW_CYCLE);
                 if (led1.isRunning() == false) {
                   led1.start();
                 }
@@ -308,8 +315,9 @@ void CheckPir() {
 
           //PIR3 Trigger LEDs
           if (PIR3_TRIGGER_MODE == 2) {
-            if (led1.getMode() != FX_MODE_VHOME_WIPE_TO_WHITE) {
-              led1.setMode(FX_MODE_VHOME_WIPE_TO_WHITE);
+            if (led1.getMode() != FX_MODE_STATIC) {
+              led1.setColor(255,175,125);
+              led1.setMode(FX_MODE_STATIC);
               if (led1.isRunning() == false) {
                 led1.start();
               }
@@ -331,7 +339,7 @@ void CheckPir() {
 
           //PIR1 Trigger LEDs
           if (PIR1_TRIGGER_MODE == 2) {
-            led1.setMode(FX_MODE_VHOME_WIPE_TO_RANDOM);
+            led1.setMode(FX_MODE_RAINBOW_CYCLE);
             led1.start();
           }
 
