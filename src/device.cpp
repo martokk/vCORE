@@ -44,7 +44,7 @@ int button_loop_interval = 0;
 WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
 
 String set_color = "0,0,0";
-String set_power = "ON";
+String set_power = "OFF";
 String set_brightness = "50";
 String set_speed = "255";
 int set_effect = FX_MODE_STATIC;
@@ -522,9 +522,6 @@ void ReconnectMqtt() {
       client.subscribe(SUB_LED1_EFFECT);
       client.subscribe(SUB_LED1_SPEED);
 
-      client.publish(PUB_LED1_POWER, "OFF");
-
-
       // Device is now Ready!
       if (device_ready == false) {
         device_ready = true;
@@ -545,33 +542,13 @@ void ReconnectMqtt() {
       // led1.service();
 
       retry = retry + 1;
+      delay(5000);
       if (retry >= 10) {
         Serial.println("MQTT Failed: Resetting Device");
-        led1.setColor(255,255,0);
-        led1.start();
-        led1.service();
-        delay(200);
 
         led1.stop();
         led1.service();
-        delay(200);
 
-        led1.setColor(255,255,0);
-        led1.start();
-        led1.service();
-        delay(200);
-
-        led1.stop();
-        led1.service();
-        delay(200);
-
-        led1.setColor(255,255,0);
-        led1.start();
-        led1.service();
-        delay(200);
-
-        led1.stop();
-        led1.service();
         ESP.reset();
       }
     }
