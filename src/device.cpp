@@ -245,11 +245,16 @@ void CheckDeviceReset() {
 /********** CHECK BUTTONS *****************************************/
 void CheckButtons() {
   int button1_state = LOW;
+
   button1_state = digitalRead(BUTTON1_PIN);
   if (button1_state == HIGH ) {
     if (millis() > button_loop_interval) {
       Serial.println("Button1 was pressed!");
       client.publish(PUB_BUTTON1, "1", true);
+
+      delay(50);
+      client.publish(PUB_BUTTON1, "0", true);
+
       button_loop_interval = millis() + BUTTON_LOOP_INTERVAL;
     }
   }
