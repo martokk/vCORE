@@ -18,6 +18,10 @@ vCORE Universal IoT Device v0.1.3
 
   #define BUTTON1_PIN               0         // Reset Button Pin
 
+/********** IR TRANSMITTER ***************************************/
+  #define TOTAL_IR_TRANSMITTERS     0         // 0 or 1 transmitter supported.
+  #define IR_TRANSMITTER1_PIN       0         // Arduno pin
+
 /********** LEDs ***************************************/
   #define TOTAL_LED_STRIPS          0         // Supports up to 5 seperate LED Strips
   #define LED_BRIGHTNESS_LIMIT      0         // Limit Brightnes Level (Max = 255)
@@ -67,6 +71,9 @@ vCORE Universal IoT Device v0.1.3
   /*--------- DHT --------------*/
     #define PUB_HUMIDITY            "device/change_me/humidity"
     #define PUB_TEMPERATURE         "device/change_me/temperature"
+
+  /*--------- IR TRANSMITTER ------------*/
+    #define SUB_IR_SEND         "device/change_me/ir_send"
 
   /*--------- LED STRIP 1 --------------*/
     #define SUB_LED1_POWER          "device/change_me/led1/power"

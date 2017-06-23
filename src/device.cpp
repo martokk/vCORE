@@ -16,6 +16,7 @@ vCORE Universal IoT Device v0.1.3
 #include <PubSubClient.h>     // Required. MQTTT
 #include <Adafruit_Sensor.h>  // Optional. DHT Sensors
 #include <DHT.h>              // Optional. DHT Sensors
+#include <IRremoteESP8266.h>  // Optional. IR Transmitter
 
 void SetupWifi();
 void SetupOta();
@@ -92,7 +93,8 @@ int dht_rolling_counter_max = DHT_MQTT_PUB_INTERVAL / DHT_INTERVAL_LOOP;
 float dht_average_temperature = 0;
 float dht_average_humidity = 0;
 
-
+/********** INITALIZE IR TRANSMITTER *******************************/
+IRsend irsend(IR_TRANSMITTER1_PIN);
 
 /******************************************************************/
 /********** SETUP *************************************************/
@@ -157,7 +159,13 @@ void setup() {
     dht.begin();
   }
 
-    led1.init();
+  // Start IR Transmitter
+  if (TOTAL_IR_TRANSMITTERS > 0) {
+      irsend.begin();
+  }
+
+  // Start LEDs
+  led1.init();
 }
 
 
@@ -674,7 +682,20 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     }
   }
 
+  /********** Check if LEDS On ****************/
   CheckLedsOn();
+
+
+  /********** IR_SEND ****************/
+  if (String(topic) == SUB_IR_SEND) {
+    for (i = 0; i < length; i++) {
+      message_buff[i] = payload[i];
+    }
+    message_buff[i] = '\0';
+    ir_command = String(message_buff);
+
+    irsend.sendNEC(ir_command, 32);
+  }
 
 }
 
