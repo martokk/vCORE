@@ -683,10 +683,6 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     }
   }
 
-  /********** Check if LEDS On ****************/
-  CheckLedsOn();
-
-
   /********** IR_SEND ****************/
   if (String(topic) == SUB_IR_SEND) {
     for (i = 2; i < length; i++) {
@@ -697,6 +693,8 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     irsend.sendNEC(msgInt, 32);
   }
 
+  /********** Check if LEDS On ****************/
+  CheckLedsOn();
 }
 
 void CheckLedsOn(){
