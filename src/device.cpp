@@ -111,8 +111,6 @@ void setup() {
     pinMode(RESET_BUTTON_PIN, INPUT);
   }
 
-  // Start WS8212FX
-
   // led1.setBrightness(80);
   // led1.setColor(0,255,255); // Purple
   // led1.setSpeed(235);
@@ -164,8 +162,6 @@ void setup() {
       irsend.begin();
   }
 
-  // Start LEDs
-  led1.init();
 }
 
 
@@ -174,6 +170,12 @@ void setup() {
 /********** MAIN LOOP *********************************************/
 /******************************************************************/
 void loop() {
+  if (!client.connected()) {
+    ReconnectMqtt();
+  }
+
+  client.loop();
+
   // Check of OTA Intall Request
   ArduinoOTA.handle();
 
@@ -204,10 +206,6 @@ void loop() {
     SetupWifi();
   }
 
-  if (!client.connected()) {
-    ReconnectMqtt();
-  }
-  client.loop();
 }
 
 
@@ -529,14 +527,14 @@ void ReconnectMqtt() {
       // led1.setColor(255,255,255);
       // led1.service();
 
-      client.subscribe(SUB_LED1_POWER);
-      client.subscribe(SUB_LED1_COLOR);
       client.subscribe(SUB_LED1_BRIGHTNESS);
+      client.subscribe(SUB_LED1_COLOR);
+      client.subscribe(SUB_LED1_POWER);
       client.subscribe(SUB_LED1_EFFECT);
       client.subscribe(SUB_LED1_SPEED);
       client.subscribe(SUB_IR_SEND);
 
-      // Device is now Ready!
+          // Device is now Ready!
       if (device_ready == false) {
         device_ready = true;
         Serial.println("------------ DEVICE CONNECTED ------------");
@@ -560,8 +558,8 @@ void ReconnectMqtt() {
       if (retry >= 10) {
         Serial.println("MQTT Failed: Resetting Device");
 
-        led1.stop();
-        led1.service();
+        // led1.stop();
+        // led1.service();
 
         ESP.reset();
       }
@@ -703,6 +701,7 @@ void CheckLedsOn(){
     client.publish(PUB_LED1_POWER, "OFF");
   }
   if (set_power == "ON") {
+    led1.init();
     led1.start();
     client.publish(PUB_LED1_POWER, "ON");
   }
