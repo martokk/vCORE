@@ -24,6 +24,8 @@ void ReconnectMqtt();
 void MqttCallback(char* topic, byte* payload, unsigned int length);
 uint8_t LimitLedBrightness(uint8_t _red, uint8_t _green, uint8_t _blue, uint8_t _brightness);
 void CheckDeviceReset();
+void CheckAirFreshenerButton();
+void SprayAirFreshener();
 void CheckButtons();
 void CheckDht();
 void CheckPir();
@@ -189,6 +191,11 @@ void loop() {
     CheckButtons();
   }
 
+  // Check Air Freshener Button
+  if (TOTAL_AIR_FRESHENER > 0 ) {
+    CheckAirFreshenerButton();
+  }
+
   //Check PIR State
   if (TOTAL_PIR_SENSORS > 0) {
     CheckPir();
@@ -248,6 +255,22 @@ void CheckDeviceReset() {
   }
 }
 
+/********** AIR FRESHENER *****************************************/
+void CheckAirFreshenerButton() {
+  int air_freshener_button_state = LOW;
+
+  air_freshener_button_state = digitalRead(AIR_FRESHENER_BUTTON_PIN);
+  if (air_freshener_button_state == HIGH ) {
+    SprayAirFreshener();
+  }
+}
+
+void SprayAirFreshener() {
+  digitalWrite(AIR_FRESHENER_PIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(5000);                       // wait for a second
+  digitalWrite(AIR_FRESHENER_PIN, LOW);   // turn the LED on (HIGH is the voltage level)
+  delay(5000);
+}
 /********** CHECK BUTTONS *****************************************/
 void CheckButtons() {
   int button1_state = LOW;
@@ -689,6 +712,16 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     message_buff[i] = '\0';
     unsigned long msgInt = strtoul(message_buff,0,16);
     irsend.sendNEC(msgInt, 32);
+  }
+
+  /********** AIR FRESHENER ****************/
+  if (String(topic) == SUB_AIR_FRESHENER) {
+    for (i = 0; i < length; i++) {
+      message_buff[i] = payload[i];
+    }
+    message_buff[i] = '\0';
+
+    SprayAirFreshener();
   }
 
   /********** Check if LEDS On ****************/
