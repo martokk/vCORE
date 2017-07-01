@@ -164,6 +164,13 @@ void setup() {
       irsend.begin();
   }
 
+  // Start Air Freshener
+  if (TOTAL_AIR_FRESHENER > 0 ) {
+    pinMode(AIR_FRESHENER_PIN, OUTPUT);
+    pinMode(AIR_FRESHENER_BUTTON_PIN, INPUT);
+  }
+
+
 }
 
 
@@ -207,7 +214,9 @@ void loop() {
   }
 
   // Run WS8212FX service
-  led1.service();
+  if (TOTAL_LED_STRIPS > 0) {
+    led1.service();
+  }
 
   if (WiFi.status() != WL_CONNECTED) {
     SetupWifi();
@@ -712,6 +721,7 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     message_buff[i] = '\0';
     unsigned long msgInt = strtoul(message_buff,0,16);
     irsend.sendNEC(msgInt, 32);
+    client.publish(PUB_DEBUG, String("irsend : " + String(message_buff)).c_str(), true);
   }
 
   /********** AIR FRESHENER ****************/
