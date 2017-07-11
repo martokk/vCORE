@@ -685,7 +685,9 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
       new_brightness = LimitLedBrightness(r_color, b_color, g_color, brightness);
       if (_get_brightness != new_brightness) {
         led1.setBrightness(new_brightness);
-        client.publish(PUB_LED1_BRIGHTNESS, String(new_brightness).c_str());
+        if ( new_brightness > 0 ) {
+          client.publish(PUB_LED1_BRIGHTNESS, String(new_brightness).c_str());
+        }
       }
       led1.setMode(FX_MODE_STATIC);
       led1.setColor(r_color,g_color,b_color);
@@ -719,9 +721,9 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
       message_buff[i-2] = payload[i];
     }
     message_buff[i] = '\0';
-    unsigned long msgInt = strtoul(message_buff,0,16);
+    unsigned long msgInt = strtoul(String(message_buff).c_str(),0,16);
     irsend.sendNEC(msgInt, 32);
-    client.publish(PUB_DEBUG, String("irsend : " + String(message_buff)).c_str(), true);
+    client.publish(PUB_DEBUG, String("irsend : " + String(msgInt)).c_str(), true);
   }
 
   /********** AIR FRESHENER ****************/
