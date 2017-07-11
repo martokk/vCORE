@@ -657,7 +657,9 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
       led1.setBrightness(new_brightness);
       Serial.println("Set Brightness: " + set_brightness);
       client.publish(PUB_DEBUG, String("get: " + String(_get_brightness) + ";  set: " + String(set_brightness)).c_str(), true);
-      client.publish(PUB_LED1_BRIGHTNESS, message_buff);
+      if ( new_brightness > 0 ) {
+        client.publish(PUB_LED1_BRIGHTNESS, String(new_brightness).c_str());
+      }
       last_brightness = brightness;
     }
   }
