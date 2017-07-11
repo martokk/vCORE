@@ -4,6 +4,12 @@ vCORE Universal IoT Device v0.6.23
 
 */
 
+  #define WIFI_SSID "change_me"
+  #define WIFI_PASS "change_me"
+
+  #define MQTT_SERVER "192.168.1.3"
+  #define MQTT_USER "change_me"
+  #define MQTT_PASS "change_me"
 
 /********** DEVICE ***************************************/
   #define DEVICE_NAME               "change_me"   // Must be unique on Network.

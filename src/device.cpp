@@ -31,13 +31,6 @@ void CheckDht();
 void CheckPir();
 void CheckLedsOn();
 
-#define WIFI_SSID "Rura Penthe"
-#define WIFI_PASS "klingonbirdofprey"
-
-#define MQTT_SERVER "192.168.1.3"
-#define MQTT_USER "username" // homeassistant
-#define MQTT_PASS "42157406"
-
 int reset_button_state = 0;
 bool device_reset = true;
 bool device_ready = false;
