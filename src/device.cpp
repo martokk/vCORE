@@ -4,9 +4,12 @@ vCORE Universal IoT Device v0.7.10
 
 */
 
+#define FASTLED_ALLOW_INTERRUPTS 0
+
 /********** INITALIZATION *****************************************/
 #include <Arduino.h>          // Required. Using .cpp file insteal .ino
 #include "config.h"           // Required. Device Configureation File (Edit before final build)
+#include <FastLED.h>          // Required. LED Strips
 #include <WS2812FX.h>         // Required. LED Strips
 #include <ESP8266WiFi.h>      // Required. WiFi
 #include <ArduinoOTA.h>       // Required. OTA Updates via PlatformIO (platformio.ini)
@@ -32,7 +35,20 @@ bool device_reset = true;
 bool device_ready = false;
 int button_loop_interval = 0;
 
-/********** INITALIZE LEDs ***************************************/
+/********** INITALIZE FASTLED ***************************************/
+uint16_t myCustomEffect();
+void fillnoise8();
+void mapNoiseToLEDsUsingPalette();
+void ChangePaletteAndSettingsPeriodically();
+void all_off();
+void SetupRandomPalette();
+void SetupRandomPalette_g();
+void SetupPurpleAndGreenPalette();
+void SetupBlackAndWhiteStripedPalette();
+uint16_t XY( uint8_t x, uint8_t y);
+void FillLEDsFromPaletteColors( uint8_t colorIndex);
+
+/********** INITALIZE WS2812FX ***************************************/
 WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
 
 String set_color = "0,0,0";
@@ -101,6 +117,9 @@ void setup() {
   if (TOTAL_RESET_BUTTONS > 0 ) {
     pinMode(RESET_BUTTON_PIN, INPUT);
   }
+
+  // FastLED.addLeds<WS2812B, LED1_PIN, RGB>(leds, 1); // init one FastLED led
+  // FastLED.setBrightness(50);
 
   // led1.setBrightness(80);
   // led1.setColor(0,255,255); // Purple
@@ -590,8 +609,14 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     uint8_t _get_mode = led1.getMode();
 
     if (_get_mode != _set_effect) {
+      if (_set_effect == 56) {
+        led1.setCustomMode(myCustomEffect);
+      }
+
       set_power == "ON";
       led1.setMode(_set_effect);
+
+
       Serial.println("Set Effect: " + String(message_buff));
 
       client.publish(PUB_HUMIDITY, String(dht_average_humidity).c_str(), true);
@@ -705,4 +730,251 @@ void CheckLedsOn(){
     client.publish(PUB_LED1_POWER, "ON");
   }
   Serial.println("Set Power: " + set_power);
+}
+
+
+
+
+
+/******************************************************************/
+/********** FASTLED ***********************************************/
+/******************************************************************/
+
+
+
+
+/********** INITALIZE FASTLED ***************************************/
+// declare some parameters for the FastLED functions
+#define MILLI_AMPERE      15000    // IMPORTANT: set here the max milli-Amps of your power supply 5V 2A = 2000
+#define FRAMES_PER_SECOND  60    // here you can control the speed.
+int ledMode = 4;                  // this is the starting palette
+int BRIGHTNESS =           128;   // this is half brightness
+int new_BRIGHTNESS =       128;   // shall be initially the same as brightness
+
+static uint16_t x = random16();
+static uint16_t y = random16();
+static uint16_t z = random16();
+uint8_t colorLoop = 1;
+uint8_t noise[LED1_COUNT][LED1_COUNT];
+
+// SPEED: Speed determines how fast time moves forward.
+// 1 = very slow moving effect
+// 60 = for something that ends up looking like water.
+uint16_t speed; // speed is set dynamically by 'ChangePaletteAndSettingsPeriodically()'
+
+// SCALE: Scale determines how far apart the pixels in our noise matrix are.
+// The higher the value of scale, the more "zoomed out" the noise will be.
+// 1 = zoomed in, you'll mostly see solid colors.
+uint16_t scale; // scale is set dynamically by 'ChangePaletteAndSettingsPeriodically()'
+
+CRGB leds[LED1_COUNT];
+CRGBPalette16 currentPalette( CRGB::Black );
+CRGBPalette16 targetPalette( CRGB::Black );
+
+// 1 = 5 sec per palette
+// 2 = 10 sec per palette
+// etc
+#define HOLD_PALETTES_X_TIMES_AS_LONG 2
+
+/********** WS2812FX HOOK ***************************************/
+uint16_t myCustomEffect() {
+  ChangePaletteAndSettingsPeriodically();
+  // Crossfade current palette slowly toward the target palette
+  //
+  // Each time that nblendPaletteTowardPalette is called, small changes
+  // are made to currentPalette to bring it closer to matching targetPalette.
+  // You can control how many changes are made in each call:
+  // - the default of 24 is a good balance
+  // - meaningful values are 1-48. 1=veeeeeeeery slow, 48=quickest
+  // - "0" means do not change the currentPalette at all; freeze
+  //  uint8_t maxChanges = 7;
+  //  nblendPaletteTowardPalette( currentPalette, targetPalette, maxChanges);
+
+  // generate noise data
+  fillnoise8();
+
+  // convert the noise data to colors in the LED array
+  // using the current palette
+  mapNoiseToLEDsUsingPalette();
+
+
+  show_at_max_brightness_for_power();
+  delay_at_max_brightness_for_power(1000/FRAMES_PER_SECOND);
+}
+
+/********** FASTLED FUNCTIONS ***************************************/
+uint16_t XY( uint8_t x, uint8_t y) {
+  uint16_t i;
+    i = (y * LED1_COUNT) + x;
+  return i;
+}
+
+void FillLEDsFromPaletteColors( uint8_t colorIndex){
+  uint8_t brightness = 255;
+
+  for( int i = 0; i < LED1_COUNT; i++) {
+    leds[i] = ColorFromPalette( currentPalette, colorIndex + sin8(i*16), brightness);
+    led1.setPixelColor(i, leds[i].red, leds[i].green, leds[i].blue);
+    colorIndex += 3;
+  }
+}
+
+/********** EFFECT - FILLNOISE8 ***************************************/
+// Fill the x/y array of 8-bit noise values using the inoise8 function.
+void fillnoise8() {
+  // If we're runing at a low "speed", some 8-bit artifacts become visible
+  // from frame-to-frame.  In order to reduce this, we can do some fast data-smoothing.
+  // The amount of data smoothing we're doing depends on "speed".
+  uint8_t dataSmoothing = 0;
+  if( speed < 50) {
+    dataSmoothing = 200 - (speed * 4);
+  }
+
+  for(int i = 0; i < LED1_COUNT; i++) {
+    int ioffset = scale * i;
+    for(int j = 0; j < LED1_COUNT; j++) {
+      int joffset = scale * j;
+
+      uint8_t data = inoise8(x + ioffset,y + joffset,z);
+
+      // The range of the inoise8 function is roughly 16-238.
+      // These two operations expand those values out to roughly 0..255
+      // You can comment them out if you want the raw noise data.
+      data = qsub8(data,16);
+      data = qadd8(data,scale8(data,39));
+
+      if( dataSmoothing ) {
+        uint8_t olddata = noise[i][j];
+        uint8_t newdata = scale8( olddata, dataSmoothing) + scale8( data, 256 - dataSmoothing);
+        data = newdata;
+      }
+
+      noise[i][j] = data;
+    }
+  }
+
+  z += speed;
+
+  // apply slow drift to X and Y, just for visual variation.
+  x += speed / 8;
+  y -= speed / 16;
+}
+
+void mapNoiseToLEDsUsingPalette(){
+  static uint8_t ihue=0;
+
+  for(int i = 0; i < LED1_COUNT; i++) {
+
+    // We use the value at the (i,j) coordinate in the noise
+    // array for our brightness, and the flipped value from (j,i)
+    // for our pixel's index into the color palette.
+
+    uint8_t index = noise[0][i];
+    uint8_t bri =   noise[i][0];
+
+    // if this palette is a 'loop', add a slowly-changing base value
+    if( colorLoop) {
+      index += ihue;
+    }
+
+    // brighten up, as the color palette itself often contains the
+    // light/dark dynamic range desired
+    if( bri > 127 ) {
+      bri = 255;
+    } else {
+      bri = dim8_raw( bri * 2);
+    }
+
+    CRGB color = ColorFromPalette( currentPalette, index, bri);
+    leds[i] = color;
+    led1.setPixelColor(i, leds[i].green, leds[i].red, leds[i].blue);
+  }
+
+  ihue+=1;
+}
+
+/********** FASTLED - ANIMATIONS ***************************************/
+void all_off() {  fill_solid( targetPalette, 16, CRGB::Black);}
+
+void ChangePaletteAndSettingsPeriodically(){
+  uint8_t maxChanges = 10;
+  nblendPaletteTowardPalette( currentPalette, targetPalette, maxChanges);
+  //uint8_t secondHand = ((millis() / 1000) / HOLD_PALETTES_X_TIMES_AS_LONG) % 60; //not used with webserver
+  //static uint8_t lastSecond = 99;                                                 //not used with webserver
+
+    if (ledMode != 999) {
+      switch (ledMode) {
+      case  1: all_off(); break;
+      case  2: SetupRandomPalette(); speed = 3; scale = 25; colorLoop = 1; break; //2-color palette
+      case  3: SetupRandomPalette_g(); speed = 3; scale = 25; colorLoop = 1; break; //3-color palette
+      case  4: SetupPurpleAndGreenPalette(); speed = 3; scale = 15; colorLoop = 1; break;
+      case  5: SetupBlackAndWhiteStripedPalette(); speed = 4; scale = 20; colorLoop = 1; ; break;
+      case  6: targetPalette = ForestColors_p; speed = 3; scale = 20; colorLoop = 0; break;
+      case  7: targetPalette = CloudColors_p; speed =  4; scale = 20; colorLoop = 0; break;
+      case  8: targetPalette = LavaColors_p;  speed =  8; scale = 19; colorLoop = 0; break;
+      case  9: targetPalette = OceanColors_p; speed = 6; scale = 25; colorLoop = 0;  break;
+      case  10: targetPalette = PartyColors_p; speed = 3; scale = 20; colorLoop = 1; break;
+      }
+  }
+}
+
+// This function generates a random palette that's a gradient
+// between four different colors.  The first is a dim hue, the second is
+// a bright hue, the third is a bright pastel, and the last is
+// another bright hue.  This gives some visual bright/dark variation
+// which is more interesting than just a gradient of different hues.
+void SetupRandomPalette() {
+  EVERY_N_MILLISECONDS( 8000 ){ //new random palette every 8 seconds. Might have to wait for the first one to show up
+  CRGB black  = CRGB::Black;
+  CRGB random1 = CHSV( random8(), 255, 255);
+  CRGB random2 = CHSV( random8(), 255, 255);
+  targetPalette = CRGBPalette16(
+                      random1,random1,black, black,
+                      random2,random2,black, black,
+                      random1,random1,black, black,
+                      random2,random2,black, black);
+  }
+}
+
+void SetupRandomPalette_g(){
+  EVERY_N_MILLISECONDS( 8000 ){ //new random palette every 8 seconds
+  CRGB black  = CRGB::Black;
+  CRGB random1 = CHSV( random8(), 255, 255);
+  CRGB random2 = CHSV( random8(), 200, 100);
+  CRGB random3 = CHSV( random8(), 150, 200);
+  targetPalette = CRGBPalette16(
+                      random1,random1,black, black,
+                      random2,random2,black, random3,
+                      random1,random1,black, black,
+                      random2,random2,black, random3);
+ }
+}
+
+// This function sets up a palette of purple and green stripes.
+void SetupPurpleAndGreenPalette() {
+  CRGB purple = CHSV( HUE_PURPLE, 255, 255);
+  CRGB green  = CHSV( HUE_GREEN, 255, 255);
+  CRGB blue  = CHSV( HUE_BLUE, 255, 255);
+  CRGB aqua  = CHSV( HUE_AQUA, 255, 255);
+  CRGB black  = CRGB::Black;
+
+  targetPalette = CRGBPalette16(
+   blue,  green,  black,  purple,
+   purple, blue , purple,  purple,
+   green,  aqua,  black,  black,
+   purple, purple, black,  purple );
+}
+
+// This function sets up a palette of black and white stripes,
+// using code.  Since the palette is effectively an array of
+// sixteen CRGB colors, the various fill_* functions can be used
+// to set them up.
+void SetupBlackAndWhiteStripedPalette(){
+  // 'black out' all 16 palette entries...
+  fill_solid( targetPalette, 16, CRGB::Black);
+  // and set every eighth one to white.
+  currentPalette[0] = CRGB::White;
+  // currentPalette[4] = CRGB::White;
+  currentPalette[8] = CRGB::White;
+  //  currentPalette[12] = CRGB::White;
 }
