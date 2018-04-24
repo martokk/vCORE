@@ -6,10 +6,8 @@ vCORE Universal IoT Device v0.7.10
 
 /********** INITALIZATION *****************************************/
 #include <Arduino.h>          // Required. Using .cpp file insteal .ino
-// #include <credentials.h>      // Required. Credentials for Wifi, MQTT, etc.
 #include "config.h"           // Required. Device Configureation File (Edit before final build)
 #include <WS2812FX.h>         // Required. LED Strips
-// #include "led1.h"         // Required. LED Strips
 #include <ESP8266WiFi.h>      // Required. WiFi
 #include <ArduinoOTA.h>       // Required. OTA Updates via PlatformIO (platformio.ini)
 #include <ESP8266mDNS.h>      // UNKNOWN! // TODO: Reasearch if ESP8266mDNS.h is needed
@@ -24,8 +22,6 @@ void ReconnectMqtt();
 void MqttCallback(char* topic, byte* payload, unsigned int length);
 uint8_t LimitLedBrightness(uint8_t _red, uint8_t _green, uint8_t _blue, uint8_t _brightness);
 void CheckDeviceReset();
-void CheckAirFreshenerButton();
-void SprayAirFreshener();
 void CheckButtons();
 void CheckDht();
 void CheckPir();
@@ -157,13 +153,6 @@ void setup() {
       irsend.begin();
   }
 
-  // Start Air Freshener
-  if (TOTAL_AIR_FRESHENER > 0 ) {
-    pinMode(AIR_FRESHENER_PIN, OUTPUT);
-    pinMode(AIR_FRESHENER_BUTTON_PIN, INPUT);
-  }
-
-
 }
 
 
@@ -189,11 +178,6 @@ void loop() {
   // Check MQTT Button
   if (TOTAL_MQTT_BUTTONS > 0 ) {
     CheckButtons();
-  }
-
-  // Check Air Freshener Button
-  if (TOTAL_AIR_FRESHENER > 0 ) {
-    CheckAirFreshenerButton();
   }
 
   //Check PIR State
@@ -257,22 +241,7 @@ void CheckDeviceReset() {
   }
 }
 
-/********** AIR FRESHENER *****************************************/
-void CheckAirFreshenerButton() {
-  int air_freshener_button_state = LOW;
 
-  air_freshener_button_state = digitalRead(AIR_FRESHENER_BUTTON_PIN);
-  if (air_freshener_button_state == HIGH ) {
-    SprayAirFreshener();
-  }
-}
-
-void SprayAirFreshener() {
-  digitalWrite(AIR_FRESHENER_PIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(5000);                       // wait for a second
-  digitalWrite(AIR_FRESHENER_PIN, LOW);   // turn the LED on (HIGH is the voltage level)
-  delay(5000);
-}
 /********** CHECK BUTTONS *****************************************/
 void CheckButtons() {
   int button1_state = LOW;
@@ -719,16 +688,6 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     unsigned long msgInt = strtoul(String(message_buff).c_str(),0,16);
     irsend.sendNEC(msgInt, 32);
     client.publish(PUB_DEBUG, String("irsend : " + String(msgInt)).c_str(), true);
-  }
-
-  /********** AIR FRESHENER ****************/
-  if (String(topic) == SUB_AIR_FRESHENER) {
-    for (i = 0; i < length; i++) {
-      message_buff[i] = payload[i];
-    }
-    message_buff[i] = '\0';
-
-    SprayAirFreshener();
   }
 
   /********** Check if LEDS On ****************/
