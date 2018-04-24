@@ -778,6 +778,7 @@ CRGBPalette16 targetPalette( CRGB::Black );
 
 /********** WS2812FX HOOK ***************************************/
 uint16_t myCustomEffect() {
+  BRIGHTNESS = led1.getBrightness();
   ChangePaletteAndSettingsPeriodically();
   // Crossfade current palette slowly toward the target palette
   //
