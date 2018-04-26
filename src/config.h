@@ -82,14 +82,18 @@ vCORE Universal IoT Device v0.7.10
     #define SUB_IR_SEND         "device/change_me/ir_send"
 
   /*--------- LED STRIP 1 --------------*/
+    #define SUB_LED1                "device/change_me/led1/"
     #define SUB_LED1_POWER          "device/change_me/led1/power"
     #define SUB_LED1_COLOR          "device/change_me/led1/color"
     #define SUB_LED1_BRIGHTNESS     "device/change_me/led1/brightness"
     #define SUB_LED1_EFFECT         "device/change_me/led1/effect"
     #define SUB_LED1_SPEED          "device/change_me/led1/speed"
+    #define SUB_LED1_PALLET         "device/change_me/led1/pallet"
 
+    #define PUB_LED1                "device/change_me/led1/pub"
     #define PUB_LED1_POWER          "device/change_me/led1/power/pub"
     #define PUB_LED1_COLOR          "device/change_me/led1/color/pub"
     #define PUB_LED1_BRIGHTNESS     "device/change_me/led1/brightness/pub"
     #define PUB_LED1_EFFECT         "device/change_me/led1/effect/pub"
     #define PUB_LED1_SPEED          "device/change_me/led1/speed/pub"
+    #define PUB_LED1_PALLET         "device/change_me/led1/pallet/pub"
