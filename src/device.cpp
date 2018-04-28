@@ -6,9 +6,7 @@ vCORE Universal IoT Device v1.4.25
 
 #define FASTLED_ALLOW_INTERRUPTS 0
 
-// ##########################################
-// ########## INITALIZATION #################
-// ##########################################
+/************ INCLUDES ****************/
 #include <Arduino.h>          // Required. Using .cpp file insteal .ino
 #include "config.h"           // Required. Device Configureation File (Edit before final build)
 #include <ESP8266WiFi.h>      // Required. WiFi
@@ -22,66 +20,76 @@ vCORE Universal IoT Device v1.4.25
 #include <DHT.h>              // Optional. DHT Sensors
 #include <IRsend.h>           // Optional. IR Transmitter
 
+/************ DEFINE FUNCITONS ****************/
 void SetupWifi();
 void SetupOta();
 void ReconnectMqtt();
 void MqttCallback(char* topic, byte* payload, unsigned int length);
-bool processJson(char* message);
-void processPallet();
-void temp2rgb(unsigned int kelvin);
-void sendState();
-void showState();
+bool ProcessMqttJson(char* message);
+void ProcessColorPallet();
+void ConvertTempToRGB(unsigned int kelvin);
+void SendMqttState();
+void ShowLedState();
 
 void CheckDeviceReset();
 void CheckButtons();
 void CheckDht();
 void CheckPir();
 
-// ********** GLOBALS ***********
+uint16_t CustomEffect_fillnoise8();
+void Effect_fillnoise8();
+void MapNoiseToLEDsUsingPalette();
+void BlendTowardsTargetPallet();
+
+/************ SET VARIABLES ****************/
+// WIFI, MQTT, JSON
+WiFiClient espClient;
+PubSubClient client(espClient);
+const int BUFFER_SIZE = JSON_OBJECT_SIZE(20);
+
+// JSON States
+bool stateOn;
+int r_color = -1;
+int g_color = -1;
+int b_color = -1;
+int color_temp = -1;
+int brightness = -1;
+int speed = 1000;
+int transitionTime;
+int effect = -1;
+const char* effect_char;
+String effect_string;
+const char* pallet_char;
+String pallet;
+
+// LED Strips
+WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
+CRGB leds[LED1_COUNT];
+CRGBPalette16 currentPalette( CRGB::Black );
+CRGBPalette16 targetPalette( CRGB::Black );
+static uint16_t x = random16();
+static uint16_t y = random16();
+static uint16_t z = random16();
+uint8_t colorLoop = 1;
+uint8_t noise[LED1_COUNT][LED1_COUNT];
+
+// SPEED: Speed determines how fast time moves forward.
+// 1 = very slow moving effect
+// 60 = for something that ends up looking like water.
+uint16_t fastled_speed; // speed is set dynamically by 'BlendTowardsTargetPallet()'
+
+// SCALE: Scale determines how far apart the pixels in our noise matrix are.
+// The higher the value of scale, the more "zoomed out" the noise will be.
+// 1 = zoomed in, you'll mostly see solid colors.
+uint16_t scale; // scale is set dynamically by 'BlendTowardsTargetPallet()'
+
+// Buttons
 int reset_button_state = 0;
 bool device_reset = true;
 bool device_ready = false;
 int button_loop_interval = 0;
 
-// ********** INITALIZE FASTLED ***********
-CRGB leds[LED1_COUNT];
-CRGBPalette16 currentPalette( CRGB::Black );
-CRGBPalette16 targetPalette( CRGB::Black );
-
-uint16_t myCustomEffect();
-void fillnoise8();
-void mapNoiseToLEDsUsingPalette();
-void ChangePaletteAndSettingsPeriodically();
-uint16_t XY( uint8_t x, uint8_t y);
-
-// ********** INITALIZE WS2812FX ***********
-WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
-
-// ********** JSON STATES ***********
-bool stateOn;
-int r_color = -1;
-int g_color = -1;
-int b_color = -1;
-int brightness = -1;
-int effect = -1;
-const char* effect_char;
-String effect_string;
-int speed = 1000;
-int transitionTime;
-const char* pallet_char;
-String pallet;
-int color_temp = -1;
-
-// ********** INITALIZE WIFI ***********
-WiFiClient espClient;
-
-// ********** INITALIZE MQTT ***********
-PubSubClient client(espClient);
-
-// ********** INITALIZE JSON ***********
-const int BUFFER_SIZE = JSON_OBJECT_SIZE(20);
-
-// ********** INITALIZE PIR ***********
+// PIR
 bool pir1_motion_state = false;
 bool pir2_motion_state = false;
 bool pir3_motion_state = false;
@@ -91,11 +99,10 @@ int pir1_rearm_time = 0;
 int pir3_rearm_time = 0;
 int pir_interval_time = 0;
 
-// ********** INITALIZE DHT ***********
+// DHT
 DHT dht(DHT_PIN, DHT_TYPE);
 int dht_interval_time = 0;
 bool dht_reconnect = true;
-
 float dht_rolling_temperature_total = 0;
 float dht_rolling_humidity_total = 0;
 int dht_rolling_counter = 0;
@@ -103,15 +110,20 @@ int dht_rolling_counter_max = DHT_MQTT_PUB_INTERVAL / DHT_INTERVAL_LOOP;
 float dht_average_temperature = 0;
 float dht_average_humidity = 0;
 
-// ********** INITALIZE IR TRANSMITTER ***********
+// IR TRANSMITTER
 IRsend irsend(IR_TRANSMITTER1_PIN);
 
 
 
-// ##########################################
-// ########## SETUP & MAIN LOOP #############
-// ##########################################
 
+
+/******************************************************************************/
+
+
+
+
+
+/************ SETUP & MAIN LOOP ****************/
 void setup() {
   // Start Serial
   Serial.begin(115200);
@@ -319,12 +331,7 @@ void loop() {
 }
 
 
-
-// ##########################################
-// ########## SENSORS / MODULES #############
-// ##########################################
-
-// ********** RESET BUTTON *************
+/************ SENSORS / MODULES ****************/
 void CheckDeviceReset() {
   reset_button_state = digitalRead(RESET_BUTTON_PIN);
   if (reset_button_state == HIGH ) {
@@ -358,7 +365,6 @@ void CheckDeviceReset() {
   }
 }
 
-// ********** CHECK BUTTONS *************
 void CheckButtons() {
   int button1_state = LOW;
 
@@ -376,7 +382,6 @@ void CheckButtons() {
   }
 }
 
-// ********** PIR CODE ***************
 void CheckPir() {
   if (millis() > pir_interval_time) {
     pir_state = 0;
@@ -491,7 +496,6 @@ void CheckPir() {
   }
 }
 
-// ********** DHT CODE ***********
 void CheckDht(){
   if (millis() > dht_interval_time) {
     // Get Values from DHT Sensor
@@ -540,11 +544,7 @@ void CheckDht(){
 }
 
 
-
-// ##########################################
-// ########## MQTT ##########################
-// ##########################################
-
+/************ MQTT ****************/
 void MqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
@@ -570,7 +570,7 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
   }
 
   // Process JSON
-  if (!processJson(message)) {
+  if (!ProcessMqttJson(message)) {
 
   }
 
@@ -579,11 +579,11 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
   // startFade = true;
   // inFade = false; // Kill the current fade
 
-  showState();
-  sendState();
+  ShowLedState();
+  SendMqttState();
 }
 
-bool processJson(char* message) {
+bool ProcessMqttJson(char* message) {
   StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
 
   JsonObject& root = jsonBuffer.parseObject(message);
@@ -623,7 +623,7 @@ bool processJson(char* message) {
     color_temp = root["color_temp"];
     unsigned int kelvin  = 1000000 / color_temp;
 
-    temp2rgb(kelvin);
+    ConvertTempToRGB(kelvin);
     effect = FX_MODE_STATIC;
   }
 
@@ -670,7 +670,7 @@ bool processJson(char* message) {
   return true;
 }
 
-void sendState() {
+void SendMqttState() {
   StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
 
@@ -722,7 +722,115 @@ void sendState() {
   client.publish(PUB_LED1, buffer, true);
 }
 
-void processPallet() {
+void ShowLedState() {
+  if (stateOn) {
+    led1.init();
+    led1.start();
+
+    // Brightness
+    led1.setBrightness(brightness);
+
+    // Color Pallet
+    ProcessColorPallet();
+
+    // Color
+    led1.setColor(r_color,g_color,b_color);
+
+    // Color Temp
+
+
+    // Effect
+    if (effect == 56) {
+      led1.setCustomMode(CustomEffect_fillnoise8);
+    }
+    led1.setMode(effect);
+
+    // Speed
+    led1.setSpeed(speed);
+
+  } else {
+    led1.stop();
+  }
+}
+
+
+// ********** WS2812FX TO FASTLED HOOKS ***********
+uint16_t CustomEffect_fillnoise8() {
+  // Fill the x/y array of 8-bit noise values using the inoise8 function.
+
+  fastled_speed = 3;
+  scale = 60;
+  colorLoop = 1;
+
+  ProcessColorPallet();
+  BlendTowardsTargetPallet();
+  // Crossfade current palette slowly toward the target palette
+  //
+  // Each time that nblendPaletteTowardPalette is called, small changes
+  // are made to currentPalette to bring it closer to matching targetPalette.
+  // You can control how many changes are made in each call:
+  // - the default of 24 is a good balance
+  // - meaningful values are 1-48. 1=veeeeeeeery slow, 48=quickest
+  // - "0" means do not change the currentPalette at all; freeze
+  //  uint8_t maxChanges = 7;
+  //  nblendPaletteTowardPalette( currentPalette, targetPalette, maxChanges);
+
+  // generate noise data
+  Effect_fillnoise8();
+
+  // convert the noise data to colors in the LED array
+  // using the current palette
+  MapNoiseToLEDsUsingPalette();
+
+
+  show_at_max_brightness_for_power();
+  delay_at_max_brightness_for_power(led1.getSpeed() / led1.getLength());
+}
+
+
+// ********** FASTLED EFFECTS ***********
+void Effect_fillnoise8() {
+  // If we're runing at a low "speed", some 8-bit artifacts become visible
+  // from frame-to-frame.  In order to reduce this, we can do some fast data-smoothing.
+  // The amount of data smoothing we're doing depends on "speed".
+  uint8_t dataSmoothing = 0;
+  if( fastled_speed < 50) {
+    dataSmoothing = 200 - (fastled_speed * 4);
+  }
+
+  for(int i = 0; i < LED1_COUNT; i++) {
+    int ioffset = scale * i;
+    for(int j = 0; j < LED1_COUNT; j++) {
+      int joffset = scale * j;
+
+      uint8_t data = inoise8(x + ioffset,y + joffset,z);
+
+      // The range of the inoise8 function is roughly 16-238.
+      // These two operations expand those values out to roughly 0..255
+      // You can comment them out if you want the raw noise data.
+      data = qsub8(data,16);
+      data = qadd8(data,scale8(data,39));
+
+      if( dataSmoothing ) {
+        uint8_t olddata = noise[i][j];
+        uint8_t newdata = scale8( olddata, dataSmoothing) + scale8( data, 256 - dataSmoothing);
+        data = newdata;
+      }
+
+      noise[i][j] = data;
+    }
+  }
+
+  z += fastled_speed;
+
+  // apply slow drift to X and Y, just for visual variation.
+  x += fastled_speed / 8;
+  y -= fastled_speed / 16;
+}
+
+
+/************ FASTLED: FUNCTIONS ****************/
+void ProcessColorPallet() {
   // Example Color using Hue, Saturation, Value (Brightness)
   // CRGB red = CHSV( 0, 255, 255);
   // Example Color using HTML Color Name
@@ -929,43 +1037,7 @@ void processPallet() {
   }
 }
 
-void showState() {
-  if (stateOn) {
-    led1.init();
-    led1.start();
-
-    // Brightness
-    led1.setBrightness(brightness);
-
-    // Color Pallet
-    processPallet();
-
-    // Color
-    led1.setColor(r_color,g_color,b_color);
-
-    // Color Temp
-
-
-    // Effect
-    if (effect == 56) {
-      led1.setCustomMode(myCustomEffect);
-    }
-    led1.setMode(effect);
-
-    // Speed
-    led1.setSpeed(speed);
-
-  } else {
-    led1.stop();
-  }
-}
-
-
-
-// ##########################################
-// ########## TEMPERATURE TO RGB ############
-// ##########################################
-void temp2rgb(unsigned int kelvin) {
+void ConvertTempToRGB(unsigned int kelvin) {
     int tmp_internal = kelvin / 100.0;
     int r_color_tmp = 0;
 
@@ -1025,277 +1097,29 @@ void temp2rgb(unsigned int kelvin) {
 
 }
 
+void BlendTowardsTargetPallet(){
+  uint8_t maxChanges = 40;
 
-// ##########################################
-// ########## OLD MQTT ######################
-// ##########################################
-// void MqttCallbackOLD(char* topic, byte* payload, unsigned int length) {
-//   int i = 0;
-//
-//   // ********** POWER ****************/
-//   if (String(topic) == SUB_LED1_POWER) {
-//     for (i = 0; i < length; i++) {
-//       message_buff[i] = payload[i];
-//     }
-//     message_buff[i] = '\0';
-//     set_power = String(message_buff);
-//
-//   }
-//
-//   // ********** EFFECT ****************/
-//   if (String(topic) == SUB_LED1_EFFECT) {
-//     for (i = 0; i < length; i++) {
-//       message_buff[i] = payload[i];
-//     }
-//     message_buff[i] = '\0';
-//     set_effect = String(message_buff).toInt();
-//     uint8_t _set_effect = set_effect;
-//     uint8_t _get_mode = led1.getMode();
-//
-//     if (_get_mode != _set_effect) {
-//       if (_set_effect == 56) {
-//         led1.setCustomMode(myCustomEffect);
-//       }
-//
-//       set_power == "ON";
-//       led1.setMode(_set_effect);
-//
-//
-//       Serial.println("Set Effect: " + String(message_buff));
-//
-//       client.publish(PUB_HUMIDITY, String(dht_average_humidity).c_str(), true);
-//       client.publish(PUB_DEBUG, String("get: " + String(_get_mode) + ";  set: " + String(_set_effect)).c_str(), true);
-//
-//       client.publish(PUB_LED1_EFFECT, message_buff);
-//     }
-//   }
-//
-//   // ********** BRIGHTNESS ****************/
-//   if (String(topic) == SUB_LED1_BRIGHTNESS) {
-//     for (i = 0; i < length; i++) {
-//       message_buff[i] = payload[i];
-//     }
-//     message_buff[i] = '\0';
-//     set_brightness = String(message_buff);
-//     brightness = set_brightness.toInt();
-//
-//
-//     new_brightness = LimitLedBrightness(r_color, b_color, g_color, brightness);
-//     uint8_t _get_brightness = led1.getBrightness();
-//
-//     if (last_brightness != new_brightness) {
-//       set_power == "ON";
-//       led1.setBrightness(new_brightness);
-//       Serial.println("Set Brightness: " + set_brightness);
-//       client.publish(PUB_DEBUG, String("get: " + String(_get_brightness) + ";  set: " + String(set_brightness)).c_str(), true);
-//       if ( new_brightness > 0 ) {
-//         client.publish(PUB_LED1_BRIGHTNESS, String(new_brightness).c_str());
-//       }
-//       last_brightness = brightness;
-//     }
-//   }
-//
-//   // ********** COLOR ****************/
-//   if (String(topic) == SUB_LED1_COLOR) {
-//     for (i = 0; i < length; i++) {
-//       message_buff[i] = payload[i];
-//     }
-//     message_buff[i] = '\0';
-//     set_color = String(message_buff);
-//
-//     g_color = set_color.substring(0, set_color.indexOf(',')).toInt();
-//     r_color = set_color.substring(set_color.indexOf(',') + 1, set_color.lastIndexOf(',')).toInt();
-//     b_color = set_color.substring(set_color.lastIndexOf(',') + 1).toInt();
-//
-//     uint32_t _set_color = ((uint32_t)r_color << 16) | ((uint32_t)g_color << 8) | b_color;
-//     uint32_t _get_color = led1.getColor();
-//     uint8_t _get_brightness = led1.getBrightness();
-//
-//     if (_get_color != _set_color) {
-//       set_power == "ON";
-//       client.publish(PUB_DEBUG, String("get: " + String(_get_color) + ";  set: " + String(_set_color)).c_str(), true);
-//
-//       new_brightness = LimitLedBrightness(r_color, b_color, g_color, brightness);
-//       if (_get_brightness != new_brightness) {
-//         led1.setBrightness(new_brightness);
-//         if ( new_brightness > 0 ) {
-//           client.publish(PUB_LED1_BRIGHTNESS, String(new_brightness).c_str());
-//         }
-//       }
-//       led1.setMode(FX_MODE_STATIC);
-//       led1.setColor(r_color,g_color,b_color);
-//
-//       Serial.println("Set Color: " + set_color);
-//       client.publish(PUB_LED1_COLOR, message_buff);
-//     }
-//   }
-//
-//   // ********** ANIMATION SPEED ****************/
-//   if (String(topic) == SUB_LED1_SPEED) {
-//     for (i = 0; i < length; i++) {
-//       message_buff[i] = payload[i];
-//     }
-//     message_buff[i] = '\0';
-//     set_speed = String(message_buff);
-//
-//     uint8_t _set_speed = set_speed.toInt();
-//     uint8_t _get_speed = led1.getSpeed();
-//
-//     if (_get_speed != _set_speed) {
-//       set_power == "ON";
-//       led1.setSpeed(_set_speed);
-//       client.publish(PUB_LED1_SPEED, message_buff);
-//     }
-//   }
-//
-//   // ********** IR_SEND ****************/
-//   if (String(topic) == SUB_IR_SEND) {
-//     for (i = 2; i < length; i++) {
-//       message_buff[i-2] = payload[i];
-//     }
-//     message_buff[i] = '\0';
-//     unsigned long msgInt = strtoul(String(message_buff).c_str(),0,16);
-//     irsend.sendNEC(msgInt, 32);
-//     client.publish(PUB_DEBUG, String("irsend : " + String(msgInt)).c_str(), true);
-//   }
-//
-//   // ********** Check if LEDS On ****************/
-//   CheckLedsOn();
-// }
-//
-// void CheckLedsOn(){
-//   if (set_power == "OFF") {
-//     led1.stop();
-//     client.publish(PUB_LED1_POWER, "OFF");
-//   }
-//   if (set_power == "ON") {
-//     led1.init();
-//     led1.start();
-//     client.publish(PUB_LED1_POWER, "ON");
-//   }
-//   Serial.println("Set Power: " + set_power);
-// }
-//
-//
-//
+  // if (ledMode != 999) {
+  //   switch (ledMode) {
+  //     case  1: all_off(); break;
+  //     case  2: SetupRandomPalette(); fastled_speed = 3; scale = 25; colorLoop = 1; break; //2-color palette
+  //     case  3: SetupRandomPalette_g(); fastled_speed = 3; scale = 25; colorLoop = 1; break; //3-color palette
+  //     case  4: SetupPurpleAndGreenPalette(); fastled_speed = 3; scale = 60; colorLoop = 1; break;
+  //     case  5: SetupGreenAndPurplePalette(); fastled_speed = 3; scale = 60; colorLoop = 1; break;
+  //     case  6: SetupBlackAndWhiteStripedPalette(); fastled_speed = 4; scale = 20; colorLoop = 1; ; break;
+  //     case  7: targetPalette = ForestColors_p; fastled_speed = 3; scale = 20; colorLoop = 0; break;
+  //     case  8: targetPalette = CloudColors_p; fastled_speed =  4; scale = 20; colorLoop = 0; break;
+  //     case  9: targetPalette = LavaColors_p;  fastled_speed =  8; scale = 19; colorLoop = 0; break;
+  //     case  10: targetPalette = OceanColors_p; fastled_speed = 6; scale = 25; colorLoop = 0;  break;
+  //     case  11: targetPalette = PartyColors_p; fastled_speed = 3; scale = 20; colorLoop = 1; break;
+  //   }
+  // }
 
-
-// **************************************
-// ********** FASTLED *******************
-// **************************************
-
-// ********** INITALIZE FASTLED ***********
-// declare some parameters for the FastLED functions
-#define MILLI_AMPERE      2000    // IMPORTANT: set here the max milli-Amps of your power supply 5V 2A = 2000
-#define FRAMES_PER_SECOND  30    // here you can control the speed.
-int ledMode = 5;                  // this is the starting palette
-int BRIGHTNESS =           128;   // this is half brightness
-
-static uint16_t x = random16();
-static uint16_t y = random16();
-static uint16_t z = random16();
-uint8_t colorLoop = 1;
-uint8_t noise[LED1_COUNT][LED1_COUNT];
-
-// SPEED: Speed determines how fast time moves forward.
-// 1 = very slow moving effect
-// 60 = for something that ends up looking like water.
-uint16_t fastled_speed; // speed is set dynamically by 'ChangePaletteAndSettingsPeriodically()'
-
-// SCALE: Scale determines how far apart the pixels in our noise matrix are.
-// The higher the value of scale, the more "zoomed out" the noise will be.
-// 1 = zoomed in, you'll mostly see solid colors.
-uint16_t scale; // scale is set dynamically by 'ChangePaletteAndSettingsPeriodically()'
-
-
-
-// 1 = 5 sec per palette
-// 2 = 10 sec per palette
-// etc
-#define HOLD_PALETTES_X_TIMES_AS_LONG 1
-
-// ********** WS2812FX HOOK ***********
-uint16_t myCustomEffect() {
-  fastled_speed = 3;
-  scale = 60;
-  colorLoop = 1;
-
-  processPallet();
-  ChangePaletteAndSettingsPeriodically();
-  // Crossfade current palette slowly toward the target palette
-  //
-  // Each time that nblendPaletteTowardPalette is called, small changes
-  // are made to currentPalette to bring it closer to matching targetPalette.
-  // You can control how many changes are made in each call:
-  // - the default of 24 is a good balance
-  // - meaningful values are 1-48. 1=veeeeeeeery slow, 48=quickest
-  // - "0" means do not change the currentPalette at all; freeze
-  //  uint8_t maxChanges = 7;
-  //  nblendPaletteTowardPalette( currentPalette, targetPalette, maxChanges);
-
-  // generate noise data
-  fillnoise8();
-
-  // convert the noise data to colors in the LED array
-  // using the current palette
-  mapNoiseToLEDsUsingPalette();
-
-
-  show_at_max_brightness_for_power();
-  delay_at_max_brightness_for_power(led1.getSpeed() / led1.getLength());
+  nblendPaletteTowardPalette( currentPalette, targetPalette, maxChanges);
 }
 
-// ********** FASTLED FUNCTIONS ***********
-uint16_t XY( uint8_t x, uint8_t y) {
-  uint16_t i;
-    i = (y * LED1_COUNT) + x;
-  return i;
-}
-
-
-
-// ********** EFFECT - FILLNOISE8 ***********
-// Fill the x/y array of 8-bit noise values using the inoise8 function.
-void fillnoise8() {
-  // If we're runing at a low "speed", some 8-bit artifacts become visible
-  // from frame-to-frame.  In order to reduce this, we can do some fast data-smoothing.
-  // The amount of data smoothing we're doing depends on "speed".
-  uint8_t dataSmoothing = 0;
-  if( fastled_speed < 50) {
-    dataSmoothing = 200 - (fastled_speed * 4);
-  }
-
-  for(int i = 0; i < LED1_COUNT; i++) {
-    int ioffset = scale * i;
-    for(int j = 0; j < LED1_COUNT; j++) {
-      int joffset = scale * j;
-
-      uint8_t data = inoise8(x + ioffset,y + joffset,z);
-
-      // The range of the inoise8 function is roughly 16-238.
-      // These two operations expand those values out to roughly 0..255
-      // You can comment them out if you want the raw noise data.
-      data = qsub8(data,16);
-      data = qadd8(data,scale8(data,39));
-
-      if( dataSmoothing ) {
-        uint8_t olddata = noise[i][j];
-        uint8_t newdata = scale8( olddata, dataSmoothing) + scale8( data, 256 - dataSmoothing);
-        data = newdata;
-      }
-
-      noise[i][j] = data;
-    }
-  }
-
-  z += fastled_speed;
-
-  // apply slow drift to X and Y, just for visual variation.
-  x += fastled_speed / 8;
-  y -= fastled_speed / 16;
-}
-
-void mapNoiseToLEDsUsingPalette(){
+void MapNoiseToLEDsUsingPalette(){
   static uint8_t ihue=0;
 
   for(int i = 0; i < LED1_COUNT; i++) {
@@ -1326,27 +1150,4 @@ void mapNoiseToLEDsUsingPalette(){
   }
 
   ihue+=1;
-}
-
-// ********** FASTLED - ANIMATIONS ***********
-void ChangePaletteAndSettingsPeriodically(){
-  uint8_t maxChanges = 40;
-
-  // if (ledMode != 999) {
-  //   switch (ledMode) {
-  //     case  1: all_off(); break;
-  //     case  2: SetupRandomPalette(); fastled_speed = 3; scale = 25; colorLoop = 1; break; //2-color palette
-  //     case  3: SetupRandomPalette_g(); fastled_speed = 3; scale = 25; colorLoop = 1; break; //3-color palette
-  //     case  4: SetupPurpleAndGreenPalette(); fastled_speed = 3; scale = 60; colorLoop = 1; break;
-  //     case  5: SetupGreenAndPurplePalette(); fastled_speed = 3; scale = 60; colorLoop = 1; break;
-  //     case  6: SetupBlackAndWhiteStripedPalette(); fastled_speed = 4; scale = 20; colorLoop = 1; ; break;
-  //     case  7: targetPalette = ForestColors_p; fastled_speed = 3; scale = 20; colorLoop = 0; break;
-  //     case  8: targetPalette = CloudColors_p; fastled_speed =  4; scale = 20; colorLoop = 0; break;
-  //     case  9: targetPalette = LavaColors_p;  fastled_speed =  8; scale = 19; colorLoop = 0; break;
-  //     case  10: targetPalette = OceanColors_p; fastled_speed = 6; scale = 25; colorLoop = 0;  break;
-  //     case  11: targetPalette = PartyColors_p; fastled_speed = 3; scale = 20; colorLoop = 1; break;
-  //   }
-  // }
-
-  nblendPaletteTowardPalette( currentPalette, targetPalette, maxChanges);
 }
