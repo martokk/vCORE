@@ -37,13 +37,11 @@ void CheckButtons();
 void CheckDht();
 void CheckPir();
 
-
 // ********** GLOBALS ***********
 int reset_button_state = 0;
 bool device_reset = true;
 bool device_ready = false;
 int button_loop_interval = 0;
-
 
 // ********** INITALIZE FASTLED ***********
 CRGB leds[LED1_COUNT];
@@ -56,8 +54,6 @@ void mapNoiseToLEDsUsingPalette();
 void ChangePaletteAndSettingsPeriodically();
 uint16_t XY( uint8_t x, uint8_t y);
 
-
-
 // ********** INITALIZE WS2812FX ***********
 WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
 
@@ -68,10 +64,12 @@ int g_color;
 int b_color;
 int brightness;
 int effect;
+const char* effect_char;
 String effect_string;
 int speed;
 int transitionTime;
 String pallet;
+int color_temp;
 
 // ********** INITALIZE WIFI ***********
 WiFiClient espClient;
@@ -80,8 +78,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // ********** INITALIZE JSON ***********
-const int BUFFER_SIZE = JSON_OBJECT_SIZE(10);
-// #define MQTT_MAX_PACKET_SIZE 512
+const int BUFFER_SIZE = JSON_OBJECT_SIZE(20);
 
 // ********** INITALIZE PIR ***********
 bool pir1_motion_state = false;
@@ -95,7 +92,6 @@ int pir_interval_time = 0;
 
 // ********** INITALIZE DHT ***********
 DHT dht(DHT_PIN, DHT_TYPE);
-
 int dht_interval_time = 0;
 bool dht_reconnect = true;
 
@@ -111,10 +107,8 @@ IRsend irsend(IR_TRANSMITTER1_PIN);
 
 
 
-
-
 // ##########################################
-// ########## SETUP #########################
+// ########## SETUP & MAIN LOOP #############
 // ##########################################
 
 void setup() {
@@ -166,13 +160,119 @@ void setup() {
 
 }
 
+void SetupWifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("WiFi: ");
 
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
 
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(200);
+  }
 
+  Serial.print("Connected to ");
+  Serial.println(WIFI_SSID);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+}
 
-// ##########################################
-// ########## MAIN LOOP #####################
-// ##########################################
+void ReconnectMqtt() {
+  // Loop until we're reconnected
+  int retry = 0;
+  while (!client.connected()) {
+    ArduinoOTA.handle();
+    Serial.print("MQTT: ");
+    // Attempt to connect
+    if (client.connect(DEVICE_NAME, MQTT_USER, MQTT_PASS)) {
+      Serial.println("Connected");
+
+      // client.publish(PUB_LED1_POWER, "ON");
+      // client.publish(PUB_LED1_COLOR, "255,255,255");
+
+      //send 'Device Restarted' notification to MQTT server
+      if (device_reset == true) {
+        client.publish(PUB_DEVICE, "restarted");
+      }
+
+      // send 'Device Connected' notification to MQTT server
+      client.publish(PUB_DEVICE, "connected");
+      client.publish(PUB_LED1, "connected");
+      client.publish(SUB_LED1, "connected");
+
+      // led1.setColor(255,255,255);
+      // led1.service();
+
+      client.subscribe(SUB_LED1);
+      client.subscribe(SUB_LED1_SPEED);
+      client.subscribe(SUB_LED1_PALLET);
+      client.subscribe(SUB_IR_SEND);
+
+          // Device is now Ready!
+      if (device_ready == false) {
+        device_ready = true;
+        Serial.println("------------ DEVICE CONNECTED ------------");
+        Serial.println();
+      }
+      retry = 0;
+    } else {
+      Serial.print("FAILED!; rc=");
+      Serial.print(client.state());
+      Serial.print("; retry=");
+      Serial.print(retry);
+
+      if (WiFi.status() != WL_CONNECTED) {
+        SetupWifi();
+      }
+      // led1.setColor(255,0,0);
+      // led1.service();
+
+      retry = retry + 1;
+      delay(5000);
+      if (retry >= 10) {
+        Serial.println("MQTT Failed: Resetting Device");
+
+        // led1.stop();
+        // led1.service();
+
+        ESP.reset();
+      }
+    }
+  }
+}
+
+void SetupOta() {
+  // Port defaults to 8266
+  // ArduinoOTA.setPort(8266);
+
+  // Set Device/Host Name
+  // ArduinoOTA.setHostname(DEVICE_NAME);
+
+  // // Set Password
+  // ArduinoOTA.setPassword(PASS); // same as wifi (via credentials.h)
+
+  ArduinoOTA.onStart([]() {
+    Serial.println("Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+  Serial.println("OTA Update: Connected");
+}
+
 void loop() {
   if (!client.connected()) {
     ReconnectMqtt();
@@ -214,8 +314,6 @@ void loop() {
   }
 
 }
-
-
 
 
 
@@ -440,131 +538,6 @@ void CheckDht(){
 
 
 
-
-
-// ##########################################
-// ########## WIFI/OTA/MQTT #################
-// ##########################################
-
-// ********** WIFI ***********
-void SetupWifi() {
-  delay(10);
-  Serial.println();
-  Serial.print("WiFi: ");
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(200);
-  }
-
-  Serial.print("Connected to ");
-  Serial.println(WIFI_SSID);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-}
-
-// ********** OTA ***********
-void SetupOta() {
-  // Port defaults to 8266
-  // ArduinoOTA.setPort(8266);
-
-  // Set Device/Host Name
-  // ArduinoOTA.setHostname(DEVICE_NAME);
-
-  // // Set Password
-  // ArduinoOTA.setPassword(PASS); // same as wifi (via credentials.h)
-
-  ArduinoOTA.onStart([]() {
-    Serial.println("Start");
-  });
-  ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
-  });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR) Serial.println("End Failed");
-  });
-  ArduinoOTA.begin();
-  Serial.println("OTA Update: Connected");
-}
-
-// ********** MQTT ***********
-void ReconnectMqtt() {
-  // Loop until we're reconnected
-  int retry = 0;
-  while (!client.connected()) {
-    ArduinoOTA.handle();
-    Serial.print("MQTT: ");
-    // Attempt to connect
-    if (client.connect(DEVICE_NAME, MQTT_USER, MQTT_PASS)) {
-      Serial.println("Connected");
-
-      // client.publish(PUB_LED1_POWER, "ON");
-      // client.publish(PUB_LED1_COLOR, "255,255,255");
-
-      //send 'Device Restarted' notification to MQTT server
-      if (device_reset == true) {
-        client.publish(PUB_DEVICE, "restarted");
-      }
-
-      // send 'Device Connected' notification to MQTT server
-      client.publish(PUB_DEVICE, "connected");
-
-      // led1.setColor(255,255,255);
-      // led1.service();
-
-      client.subscribe(SUB_LED1);
-      client.subscribe(SUB_LED1_SPEED);
-      client.subscribe(SUB_LED1_PALLET);
-      client.subscribe(SUB_IR_SEND);
-      sendState();
-
-          // Device is now Ready!
-      if (device_ready == false) {
-        device_ready = true;
-        Serial.println("------------ DEVICE CONNECTED ------------");
-        Serial.println();
-      }
-      retry = 0;
-    } else {
-      Serial.print("FAILED!; rc=");
-      Serial.print(client.state());
-      Serial.print("; retry=");
-      Serial.print(retry);
-
-      if (WiFi.status() != WL_CONNECTED) {
-        SetupWifi();
-      }
-      // led1.setColor(255,0,0);
-      // led1.service();
-
-      retry = retry + 1;
-      delay(5000);
-      if (retry >= 10) {
-        Serial.println("MQTT Failed: Resetting Device");
-
-        // led1.stop();
-        // led1.service();
-
-        ESP.reset();
-      }
-    }
-  }
-}
-
-
-
-
-
 // ##########################################
 // ########## MQTT ##########################
 // ##########################################
@@ -573,10 +546,11 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
+  // client.publish(PUB_DEBUG, topic, true);
 
   char message[length + 1];
   for (int i = 0; i < length; i++) {
-    message[i] = payload[i];
+    message[i] = (char)payload[i];
   }
   message[length] = '\0';
   Serial.println(message);
@@ -598,14 +572,124 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
   }
 
 
-  Serial.println("stateOn: " + stateOn);
-  Serial.println("effect: " + effect);
 
   // startFade = true;
   // inFade = false; // Kill the current fade
 
   showState();
   sendState();
+}
+
+bool processJson(char* message) {
+  StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
+
+  JsonObject& root = jsonBuffer.parseObject(message);
+  // client.publish(PUB_DEBUG, "Parsing JSON", true);
+  if (!root.success()) {
+    Serial.println("parseObject() failed");
+    client.publish(PUB_DEBUG, "parseObject() failed", true);
+    // client.publish(PUB_DEBUG, String(message).c_str(), true);
+    return false;
+  }
+
+
+  // ********** STATE ***********
+  if (root.containsKey("state")) {
+    if (strcmp(root["state"], "ON") == 0) {
+      stateOn = true;
+    }
+    else if (strcmp(root["state"], "OFF") == 0) {
+      stateOn = false;
+    }
+  }
+
+
+  // ********** COLOR ***********
+  if (root.containsKey("color")) {
+    r_color = (int)root["color"]["g"];
+    g_color = (int)root["color"]["r"];
+    b_color = (int)root["color"]["b"];
+
+    effect = FX_MODE_STATIC;
+  }
+
+
+  // ********** COLOR TEMPERATURE ***********
+  if (root.containsKey("color_temp")) {
+    //temp comes in as mireds, need to convert to kelvin then to RGB
+    color_temp = root["color_temp"];
+    unsigned int kelvin  = 1000000 / color_temp;
+
+    temp2rgb(kelvin);
+    effect = FX_MODE_STATIC;
+  }
+
+
+  // ********** BRIGHTNESS ***********
+  if (root.containsKey("brightness")) {
+    brightness = root["brightness"];
+  }
+
+
+  // ********** EFFECT ***********
+  if (root.containsKey("effect")) {
+    for (uint8_t i=0; i <= led1.getModeCount(); i++) {
+
+      if (strcmp(root["effect"], String(led1.getModeName(i)).c_str()) == 0) {
+        effect = i;
+        effect_char = root["effect"];
+        effect_string = effect_char;
+
+      }
+    }
+  }
+
+
+  // ********** TRANSITION ***********
+  if (root.containsKey("transition")) {
+    transitionTime = root["transition"];
+  // }
+  // else if ( effectString == "solid") {
+  //   transitionTime = 0;
+  }
+
+
+  return true;
+}
+
+void sendState() {
+  StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+
+  // Device State
+  root["state"] = (stateOn) ? "ON" : "OFF";
+
+  // Color
+  JsonObject& color = root.createNestedObject("color");
+  color["r"] = g_color;
+  color["g"] = r_color;
+  color["b"] = b_color;
+
+  // Color Temp
+  root["color_temp"] = color_temp;
+
+  // Brightness
+  root["brightness"] = brightness;
+
+  // Effect
+  root["effect"] = led1.getModeName(led1.getMode());
+  root["effect_id"] = effect;
+
+  // Publish to MQTT Server
+  char buffer[root.measureLength() + 1];
+  root.printTo(buffer, sizeof(buffer));
+  client.publish(PUB_LED1, buffer, true);
+
+  // Publish Speed
+  client.publish(PUB_LED1_SPEED, String(speed).c_str(), true);
+
+  // Publish Color Pallet
+  client.publish(PUB_LED1_PALLET, String(pallet).c_str(), true);
 }
 
 void processPallet() {
@@ -815,177 +899,36 @@ void processPallet() {
   }
 }
 
-void sendState() {
-  // Device State
-  if (stateOn) {
-    StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-
-    root["state"] = (stateOn) ? "ON" : "OFF";
-
-    // Color
-    if (r_color) {
-      JsonObject& color = root.createNestedObject("color");
-      color["r"] = g_color;
-      color["g"] = r_color;
-      color["b"] = b_color;
-    }
-
-    // Brightness
-    if (brightness) {
-      root["brightness"] = brightness;
-    }
-
-    // Effect
-    if (effect_string != "") {
-      root["effect"] = effect_string;
-      root["effect_id"] = effect;
-    }
-
-    char buffer[root.measureLength() + 1];
-    root.printTo(buffer, sizeof(buffer));
-
-    client.publish(PUB_LED1, buffer, true);
-  }
-
-  // Speed
-  if (speed) {
-    client.publish(PUB_LED1_SPEED, String(speed).c_str(), true);
-  }
-
-  // Pallet
-  if (pallet != "") {
-    client.publish(PUB_LED1_PALLET, String(pallet).c_str(), true);
-  }
-
-
-}
-
 void showState() {
-  // ********** SHOW STATE ON LEDS ***********
-
-  // Device State
   if (stateOn) {
     led1.init();
     led1.start();
 
     // Brightness
-    if (brightness) {
-      led1.setBrightness(brightness);
-    }
+    led1.setBrightness(brightness);
 
-    // Effect
-    if (effect_string != "" ) {
-      if (effect == 56) {
-        led1.setCustomMode(myCustomEffect);
-      }
-      led1.setMode(effect);
-    }
+    // Color Pallet
+    processPallet();
 
     // Color
-    if (r_color) {
-      led1.setColor(r_color,g_color,b_color);
-    }
+    led1.setColor(r_color,g_color,b_color);
 
-    // TargetPallet
-    if (pallet != "") {
-      processPallet();
+    // Color Temp
+
+
+    // Effect
+    if (effect == 56) {
+      led1.setCustomMode(myCustomEffect);
     }
+    led1.setMode(effect);
 
     // Speed
-    if (speed) {
-      led1.setSpeed(speed);
-    }
+    led1.setSpeed(speed);
 
-  }
-  else {
+  } else {
     led1.stop();
   }
 }
-
-
-
-// ##########################################
-// ########## PROCESS JSON ##################
-// ##########################################
-
-bool processJson(char* message) {
-  StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
-
-  JsonObject& root = jsonBuffer.parseObject(message);
-
-  if (!root.success()) {
-    Serial.println("parseObject() failed");
-    return false;
-  }
-
-
-  // ********** STATE ***********
-  if (root.containsKey("state")) {
-    if (strcmp(root["state"], "ON") == 0) {
-      stateOn = true;
-    }
-    else if (strcmp(root["state"], "OFF") == 0) {
-      stateOn = false;
-    }
-  }
-
-
-  // ********** COLOR ***********
-  if (root.containsKey("color")) {
-    r_color = root["color"]["g"];
-    g_color = root["color"]["r"];
-    b_color = root["color"]["b"];
-
-    stateOn = true;
-    effect = FX_MODE_STATIC;
-  }
-
-
-  // ********** COLOR TEMPERATURE ***********
-  if (root.containsKey("color_temp")) {
-    //temp comes in as mireds, need to convert to kelvin then to RGB
-    int color_temp = root["color_temp"];
-    unsigned int kelvin  = 1000000 / color_temp;
-
-    stateOn = true;
-    temp2rgb(kelvin);
-    effect = FX_MODE_STATIC;
-  }
-
-
-  // ********** BRIGHTNESS ***********
-  if (root.containsKey("brightness")) {
-    brightness = root["brightness"];
-    stateOn = true;
-  }
-
-
-  // ********** EFFECT ***********
-  if (root.containsKey("effect")) {
-    for (uint8_t i=0; i < MODE_COUNT; i++) {
-      if ( root["effect"] == led1.getModeName(i) ) {
-        effect = i;
-        effect_string = (const char*)root["effect"];
-      }
-    }
-
-    stateOn = true;
-  }
-
-
-  // ********** TRANSITION ***********
-  if (root.containsKey("transition")) {
-    transitionTime = root["transition"];
-  // }
-  // else if ( effectString == "solid") {
-  //   transitionTime = 0;
-  }
-
-
-  return true;
-}
-
 
 
 
@@ -1053,46 +996,9 @@ void temp2rgb(unsigned int kelvin) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
+// ##########################################
+// ########## OLD MQTT ######################
+// ##########################################
 // void MqttCallbackOLD(char* topic, byte* payload, unsigned int length) {
 //   int i = 0;
 //
@@ -1247,9 +1153,6 @@ void temp2rgb(unsigned int kelvin) {
 // **************************************
 // ********** FASTLED *******************
 // **************************************
-
-
-
 
 // ********** INITALIZE FASTLED ***********
 // declare some parameters for the FastLED functions
