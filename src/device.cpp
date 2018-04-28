@@ -707,8 +707,8 @@ void processPallet() {
   CRGB purple = CRGB::DarkViolet; // Main color
   CRGB magenta = CRGB::Magenta; // Main color
   CRGB black  = CRGB::Black;
-  CRGB coolwhite  = CRGB::White;
-  CRGB warmwhite  = CRGB::Ivory;
+  CRGB coolwhite  = CRGB( 255, 175, 125);
+  CRGB warmwhite  = CRGB( 255, 155, 55) ;
   CRGB random = CHSV( random8(), 255, 255);
 
 
