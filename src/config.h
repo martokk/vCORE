@@ -1,5 +1,5 @@
 /*
-vCORE Universal IoT Device v0.7.10
+vCORE Universal IoT Device v1.4.28
   - mike.villarreal@outlook.com
 
 */
