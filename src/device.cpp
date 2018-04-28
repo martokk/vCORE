@@ -59,17 +59,18 @@ WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
 
 // ********** JSON STATES ***********
 bool stateOn;
-int r_color;
-int g_color;
-int b_color;
-int brightness;
-int effect;
+int r_color = -1;
+int g_color = -1;
+int b_color = -1;
+int brightness = -1;
+int effect = -1;
 const char* effect_char;
 String effect_string;
-int speed;
+int speed = 1000;
 int transitionTime;
+const char* pallet_char;
 String pallet;
-int color_temp;
+int color_temp = -1;
 
 // ********** INITALIZE WIFI ***********
 WiFiClient espClient;
@@ -198,11 +199,13 @@ void ReconnectMqtt() {
 
       // send 'Device Connected' notification to MQTT server
       client.publish(PUB_DEVICE, "connected");
-      client.publish(PUB_LED1, "connected");
       client.publish(SUB_LED1, "connected");
 
       // led1.setColor(255,255,255);
       // led1.service();
+      client.subscribe(PUB_LED1);
+      client.loop();
+      client.unsubscribe(PUB_LED1);
 
       client.subscribe(SUB_LED1);
       client.subscribe(SUB_LED1_SPEED);
@@ -568,7 +571,7 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
 
   // Process JSON
   if (!processJson(message)) {
-    return;
+
   }
 
 
@@ -630,6 +633,16 @@ bool processJson(char* message) {
     brightness = root["brightness"];
   }
 
+  // ********** SPEED ***********
+  if (root.containsKey("speed")) {
+    speed = root["speed"];
+  }
+
+  // ********** Pallet ***********
+  if (root.containsKey("pallet")) {
+    pallet_char = root["pallet"];
+    pallet = pallet_char;
+  }
 
   // ********** EFFECT ***********
   if (root.containsKey("effect")) {
@@ -664,32 +677,49 @@ void sendState() {
   // Device State
   root["state"] = (stateOn) ? "ON" : "OFF";
 
-  // Color
-  JsonObject& color = root.createNestedObject("color");
-  color["r"] = g_color;
-  color["g"] = r_color;
-  color["b"] = b_color;
+  if (stateOn) {
+      // Color
+      if ( r_color != -1  && g_color != -1 && b_color != -1 ) {
+        JsonObject& color = root.createNestedObject("color");
+        color["r"] = g_color;
+        color["g"] = r_color;
+        color["b"] = b_color;
+      }
 
-  // Color Temp
-  root["color_temp"] = color_temp;
+      // Color Temp
+      if (color_temp != -1) {
+        root["color_temp"] = color_temp;
+      }
 
-  // Brightness
-  root["brightness"] = brightness;
+      // Brightness
+      if (brightness != -1) {
+        root["brightness"] = brightness;
+      }
 
-  // Effect
-  root["effect"] = led1.getModeName(led1.getMode());
-  root["effect_id"] = effect;
+
+      // Effect
+      if (effect != -1) {
+        root["effect"] = led1.getModeName(led1.getMode());
+        root["effect_id"] = effect;
+      }
+
+      // Publish Speed
+      if (speed > 10 ) {
+        client.publish(PUB_LED1_SPEED, String(speed).c_str() , true);
+        root["speed"] = speed;
+      }
+
+      // Publish Color Pallet
+      if (pallet != "") {
+        client.publish(PUB_LED1_PALLET, pallet.c_str(), true);
+        root["pallet"] = pallet;
+      }
+  }
 
   // Publish to MQTT Server
   char buffer[root.measureLength() + 1];
   root.printTo(buffer, sizeof(buffer));
   client.publish(PUB_LED1, buffer, true);
-
-  // Publish Speed
-  client.publish(PUB_LED1_SPEED, String(speed).c_str(), true);
-
-  // Publish Color Pallet
-  client.publish(PUB_LED1_PALLET, String(pallet).c_str(), true);
 }
 
 void processPallet() {
@@ -1212,7 +1242,7 @@ uint16_t myCustomEffect() {
 
 
   show_at_max_brightness_for_power();
-  delay_at_max_brightness_for_power(1);
+  delay_at_max_brightness_for_power(led1.getSpeed() / led1.getLength());
 }
 
 // ********** FASTLED FUNCTIONS ***********
