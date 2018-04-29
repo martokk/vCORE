@@ -902,7 +902,7 @@ void ProcessColorPalette() {
   else if (palette == "CyanWithPurple_p") {
     CRGB color1 = cyan;
     CRGB color2 = purple;
-    CRGB color3 = magenta;
+    CRGB color3 = blue;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -913,7 +913,7 @@ void ProcessColorPalette() {
   else if (palette == "CyanWithWhite_p") {
     CRGB color1 = cyan;
     CRGB color2 = coolwhite;
-    CRGB color3 = warmwhite;
+    CRGB color3 = blue;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -924,7 +924,7 @@ void ProcessColorPalette() {
   else if (palette == "GreenWithPurple_p") {
     CRGB color1 = green;
     CRGB color2 = purple;
-    CRGB color3 = blue;
+    CRGB color3 = green;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -1000,8 +1000,8 @@ void ProcessColorPalette() {
   }
   else if (palette == "PurpleWithGreen_p") {
     CRGB color1 = purple;
-    CRGB color2 = green;
-    CRGB color3 = cyan;
+    CRGB color2 = purple;
+    CRGB color3 = green;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
