@@ -26,7 +26,7 @@ void SetupOta();
 void ReconnectMqtt();
 void MqttCallback(char* topic, byte* payload, unsigned int length);
 bool ProcessMqttJson(char* message);
-void ProcessColorPallet();
+void ProcessColorPalette();
 void ConvertTempToRGB(unsigned int kelvin);
 void SendMqttState();
 void ShowLedState();
@@ -39,7 +39,6 @@ void CheckPir();
 uint16_t CustomEffect_fillnoise8();
 void Effect_fillnoise8();
 void MapNoiseToLEDsUsingPalette();
-void BlendTowardsTargetPallet();
 
 /************ SET VARIABLES ****************/
 // WIFI, MQTT, JSON
@@ -59,29 +58,30 @@ int transitionTime;
 int effect = -1;
 const char* effect_char;
 String effect_string;
-const char* pallet_char;
-String pallet;
+const char* palette_char;
+String palette;
 
 // LED Strips
 WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
 CRGB leds[LED1_COUNT];
-CRGBPalette16 currentPalette( CRGB::Black );
-CRGBPalette16 targetPalette( CRGB::Black );
+CRGBPalette16 currentPalette( CRGB(-1, -1, -1));
+CRGBPalette16 targetPalette( CRGB(-1, -1, -1) );
 static uint16_t x = random16();
 static uint16_t y = random16();
 static uint16_t z = random16();
+uint8_t maxPaletteBlendChanges = 40;
 uint8_t colorLoop = 1;
 uint8_t noise[LED1_COUNT][LED1_COUNT];
 
 // SPEED: Speed determines how fast time moves forward.
 // 1 = very slow moving effect
 // 60 = for something that ends up looking like water.
-uint16_t fastled_speed; // speed is set dynamically by 'BlendTowardsTargetPallet()'
+uint16_t fastled_speed; // speed is set dynamically by 'BlendTowardsTargetPalette()'
 
 // SCALE: Scale determines how far apart the pixels in our noise matrix are.
 // The higher the value of scale, the more "zoomed out" the noise will be.
 // 1 = zoomed in, you'll mostly see solid colors.
-uint16_t scale; // scale is set dynamically by 'BlendTowardsTargetPallet()'
+uint16_t scale; // scale is set dynamically by 'BlendTowardsTargetPalette()'
 
 // Buttons
 int reset_button_state = 0;
@@ -215,13 +215,15 @@ void ReconnectMqtt() {
 
       // led1.setColor(255,255,255);
       // led1.service();
+
+      // NOTE: Comment out if device keeps restarting.
       client.subscribe(PUB_LED1);
       client.loop();
       client.unsubscribe(PUB_LED1);
 
       client.subscribe(SUB_LED1);
       client.subscribe(SUB_LED1_SPEED);
-      client.subscribe(SUB_LED1_PALLET);
+      client.subscribe(SUB_LED1_PALETTE);
       client.subscribe(SUB_IR_SEND);
 
           // Device is now Ready!
@@ -559,9 +561,9 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.println(message);
 
 
-  // Process MQTT Topic - PALLET
-  if (String(topic) == SUB_LED1_PALLET) {
-    pallet = String(message);
+  // Process MQTT Topic - PALETTE
+  if (String(topic) == SUB_LED1_PALETTE) {
+    palette = String(message);
   }
 
   // Process MQTT Topic - SPEED
@@ -638,10 +640,10 @@ bool ProcessMqttJson(char* message) {
     speed = root["speed"];
   }
 
-  // ********** Pallet ***********
-  if (root.containsKey("pallet")) {
-    pallet_char = root["pallet"];
-    pallet = pallet_char;
+  // ********** Palette ***********
+  if (root.containsKey("palette")) {
+    palette_char = root["palette"];
+    palette = palette_char;
   }
 
   // ********** EFFECT ***********
@@ -709,10 +711,10 @@ void SendMqttState() {
         root["speed"] = speed;
       }
 
-      // Publish Color Pallet
-      if (pallet != "") {
-        client.publish(PUB_LED1_PALLET, pallet.c_str(), true);
-        root["pallet"] = pallet;
+      // Publish Color Palette
+      if (palette != "") {
+        client.publish(PUB_LED1_PALETTE, palette.c_str(), true);
+        root["palette"] = palette;
       }
   }
 
@@ -724,14 +726,15 @@ void SendMqttState() {
 
 void ShowLedState() {
   if (stateOn) {
-    led1.init();
-    led1.start();
+
+    // Color Palette
+    ProcessColorPalette();
+
+
+
 
     // Brightness
     led1.setBrightness(brightness);
-
-    // Color Pallet
-    ProcessColorPallet();
 
     // Color
     led1.setColor(r_color,g_color,b_color);
@@ -748,6 +751,9 @@ void ShowLedState() {
     // Speed
     led1.setSpeed(speed);
 
+    led1.init();
+    led1.start();
+
   } else {
     led1.stop();
   }
@@ -762,9 +768,10 @@ uint16_t CustomEffect_fillnoise8() {
   scale = 60;
   colorLoop = 1;
 
-  ProcessColorPallet();
-  BlendTowardsTargetPallet();
-  // Crossfade current palette slowly toward the target palette
+  // Process Color Palette Changes
+  ProcessColorPalette();
+
+  // Transition Current Palette Towards Target Palettee
   //
   // Each time that nblendPaletteTowardPalette is called, small changes
   // are made to currentPalette to bring it closer to matching targetPalette.
@@ -772,8 +779,8 @@ uint16_t CustomEffect_fillnoise8() {
   // - the default of 24 is a good balance
   // - meaningful values are 1-48. 1=veeeeeeeery slow, 48=quickest
   // - "0" means do not change the currentPalette at all; freeze
-  //  uint8_t maxChanges = 7;
-  //  nblendPaletteTowardPalette( currentPalette, targetPalette, maxChanges);
+
+  nblendPaletteTowardPalette( currentPalette, targetPalette, maxPaletteBlendChanges);
 
   // generate noise data
   Effect_fillnoise8();
@@ -830,7 +837,7 @@ void Effect_fillnoise8() {
 
 
 /************ FASTLED: FUNCTIONS ****************/
-void ProcessColorPallet() {
+void ProcessColorPalette() {
   // Example Color using Hue, Saturation, Value (Brightness)
   // CRGB red = CHSV( 0, 255, 255);
   // Example Color using HTML Color Name
@@ -850,16 +857,16 @@ void ProcessColorPallet() {
   CRGB random = CHSV( random8(), 255, 255);
 
 
-  if (pallet == "CloudColors_p") { targetPalette = CloudColors_p;}
-  else if (pallet == "LavaColors_p") { targetPalette = LavaColors_p;}
-  else if (pallet == "OceanColors_p") { targetPalette = OceanColors_p;}
-  else if (pallet == "ForestColors_p") { targetPalette = ForestColors_p;}
-  else if (pallet == "RainbowColors_p") { targetPalette = RainbowColors_p;}
-  else if (pallet == "RainbowStripeColors_p") { targetPalette = RainbowStripeColors_p;}
-  else if (pallet == "PartyColors_p") { targetPalette = PartyColors_p;}
-  else if (pallet == "HeatColors_p") { targetPalette = HeatColors_p;}
+  if (palette == "CloudColors_p") { targetPalette = CloudColors_p;}
+  else if (palette == "LavaColors_p") { targetPalette = LavaColors_p;}
+  else if (palette == "OceanColors_p") { targetPalette = OceanColors_p;}
+  else if (palette == "ForestColors_p") { targetPalette = ForestColors_p;}
+  else if (palette == "RainbowColors_p") { targetPalette = RainbowColors_p;}
+  else if (palette == "RainbowStripeColors_p") { targetPalette = RainbowStripeColors_p;}
+  else if (palette == "PartyColors_p") { targetPalette = PartyColors_p;}
+  else if (palette == "HeatColors_p") { targetPalette = HeatColors_p;}
 
-  else if (pallet == "BlueWithPurple_p") {
+  else if (palette == "BlueWithPurple_p") {
     CRGB color1 = blue;
     CRGB color2 = purple;
     CRGB color3 = cyan;
@@ -870,7 +877,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "CoolWhiteWithRandom_p") {
+  else if (palette == "CoolWhiteWithRandom_p") {
     CRGB color1 = coolwhite;
     CRGB color2 = random;
     CRGB color3 = random;
@@ -881,7 +888,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "CyanWithGreen_p") {
+  else if (palette == "CyanWithGreen_p") {
     CRGB color1 = cyan;
     CRGB color2 = green;
     CRGB color3 = yellow;
@@ -892,7 +899,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "CyanWithPurple_p") {
+  else if (palette == "CyanWithPurple_p") {
     CRGB color1 = cyan;
     CRGB color2 = purple;
     CRGB color3 = magenta;
@@ -903,7 +910,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "CyanWithWhite_p") {
+  else if (palette == "CyanWithWhite_p") {
     CRGB color1 = cyan;
     CRGB color2 = coolwhite;
     CRGB color3 = warmwhite;
@@ -914,7 +921,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "GreenWithPurple_p") {
+  else if (palette == "GreenWithPurple_p") {
     CRGB color1 = green;
     CRGB color2 = purple;
     CRGB color3 = blue;
@@ -925,7 +932,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "MagentaWithWhite_p") {
+  else if (palette == "MagentaWithWhite_p") {
     CRGB color1 = magenta;
     CRGB color2 = coolwhite;
     CRGB color3 = black;
@@ -936,7 +943,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "OrangeWithRed_p") {
+  else if (palette == "OrangeWithRed_p") {
     CRGB color1 = orange;
     CRGB color2 = red;
     CRGB color3 = magenta;
@@ -947,7 +954,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "Party_p") {
+  else if (palette == "Party_p") {
     CRGB color1 = CHSV( random8(), random8(), random8());
     CRGB color2 = CHSV( random8(), random8(), random8());
     CRGB color3 = CHSV( random8(), random8(), random8());
@@ -958,7 +965,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "MagentaWithYellow_p") {
+  else if (palette == "MagentaWithYellow_p") {
     CRGB color1 = magenta;
     CRGB color2 = yellow;
     CRGB color3 = orange;
@@ -969,7 +976,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "PurpleWithBlack_p") {
+  else if (palette == "PurpleWithBlack_p") {
     CRGB color1 = purple;
     CRGB color2 = black;
     CRGB color3 = blue;
@@ -980,7 +987,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "PurpleWithCyan_p") {
+  else if (palette == "PurpleWithCyan_p") {
     CRGB color1 = purple;
     CRGB color2 = cyan;
     CRGB color3 = blue;
@@ -991,7 +998,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "PurpleWithGreen_p") {
+  else if (palette == "PurpleWithGreen_p") {
     CRGB color1 = purple;
     CRGB color2 = green;
     CRGB color3 = cyan;
@@ -1002,7 +1009,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "RedWithBlack_p") {
+  else if (palette == "RedWithBlack_p") {
     CRGB color1 = red;
     CRGB color2 = CRGB::DarkRed;
     CRGB color3 = CRGB::Crimson;
@@ -1013,7 +1020,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "RedWithOragnge_p") {
+  else if (palette == "RedWithOragnge_p") {
     CRGB color1 = red;
     CRGB color2 = orange;
     CRGB color3 = yellow;
@@ -1024,7 +1031,7 @@ void ProcessColorPallet() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (pallet == "WarmWhiteWithBlack_p") {
+  else if (palette == "WarmWhiteWithBlack_p") {
     CRGB color1 = warmwhite;
     CRGB color2 = black;
     CRGB color3 = coolwhite;
@@ -1034,6 +1041,10 @@ void ProcessColorPallet() {
       color1,   color1,   color1,   black,
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
+  }
+
+  if (currentPalette  = CRGB(-1, -1, -1) ) {
+    currentPalette = targetPalette;
   }
 }
 
@@ -1097,27 +1108,23 @@ void ConvertTempToRGB(unsigned int kelvin) {
 
 }
 
-void BlendTowardsTargetPallet(){
-  uint8_t maxChanges = 40;
-
-  // if (ledMode != 999) {
-  //   switch (ledMode) {
-  //     case  1: all_off(); break;
-  //     case  2: SetupRandomPalette(); fastled_speed = 3; scale = 25; colorLoop = 1; break; //2-color palette
-  //     case  3: SetupRandomPalette_g(); fastled_speed = 3; scale = 25; colorLoop = 1; break; //3-color palette
-  //     case  4: SetupPurpleAndGreenPalette(); fastled_speed = 3; scale = 60; colorLoop = 1; break;
-  //     case  5: SetupGreenAndPurplePalette(); fastled_speed = 3; scale = 60; colorLoop = 1; break;
-  //     case  6: SetupBlackAndWhiteStripedPalette(); fastled_speed = 4; scale = 20; colorLoop = 1; ; break;
-  //     case  7: targetPalette = ForestColors_p; fastled_speed = 3; scale = 20; colorLoop = 0; break;
-  //     case  8: targetPalette = CloudColors_p; fastled_speed =  4; scale = 20; colorLoop = 0; break;
-  //     case  9: targetPalette = LavaColors_p;  fastled_speed =  8; scale = 19; colorLoop = 0; break;
-  //     case  10: targetPalette = OceanColors_p; fastled_speed = 6; scale = 25; colorLoop = 0;  break;
-  //     case  11: targetPalette = PartyColors_p; fastled_speed = 3; scale = 20; colorLoop = 1; break;
-  //   }
-  // }
-
-  nblendPaletteTowardPalette( currentPalette, targetPalette, maxChanges);
-}
+// void BlendTowardsTargetPalette(){
+//   if (ledMode != 999) {
+//     switch (ledMode) {
+//       case  1: all_off(); break;
+//       case  2: SetupRandomPalette(); fastled_speed = 3; scale = 25; colorLoop = 1; break; //2-color palette
+//       case  3: SetupRandomPalette_g(); fastled_speed = 3; scale = 25; colorLoop = 1; break; //3-color palette
+//       case  4: SetupPurpleAndGreenPalette(); fastled_speed = 3; scale = 60; colorLoop = 1; break;
+//       case  5: SetupGreenAndPurplePalette(); fastled_speed = 3; scale = 60; colorLoop = 1; break;
+//       case  6: SetupBlackAndWhiteStripedPalette(); fastled_speed = 4; scale = 20; colorLoop = 1; ; break;
+//       case  7: targetPalette = ForestColors_p; fastled_speed = 3; scale = 20; colorLoop = 0; break;
+//       case  8: targetPalette = CloudColors_p; fastled_speed =  4; scale = 20; colorLoop = 0; break;
+//       case  9: targetPalette = LavaColors_p;  fastled_speed =  8; scale = 19; colorLoop = 0; break;
+//       case  10: targetPalette = OceanColors_p; fastled_speed = 6; scale = 25; colorLoop = 0;  break;
+//       case  11: targetPalette = PartyColors_p; fastled_speed = 3; scale = 20; colorLoop = 1; break;
+//     }
+//   }
+// }
 
 void MapNoiseToLEDsUsingPalette(){
   static uint8_t ihue=0;
