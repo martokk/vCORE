@@ -72,16 +72,8 @@ static uint16_t z = random16();
 uint8_t maxPaletteBlendChanges = 40;
 uint8_t colorLoop = 1;
 uint8_t noise[LED1_COUNT][LED1_COUNT];
-
-// SPEED: Speed determines how fast time moves forward.
-// 1 = very slow moving effect
-// 60 = for something that ends up looking like water.
-uint16_t fastled_speed; // speed is set dynamically by 'BlendTowardsTargetPalette()'
-
-// SCALE: Scale determines how far apart the pixels in our noise matrix are.
-// The higher the value of scale, the more "zoomed out" the noise will be.
-// 1 = zoomed in, you'll mostly see solid colors.
-uint16_t scale; // scale is set dynamically by 'BlendTowardsTargetPalette()'
+uint16_t fastled_speed;
+uint16_t scale;
 
 // Buttons
 int reset_button_state = 0;
@@ -762,11 +754,19 @@ void ShowLedState() {
 
 // ********** WS2812FX TO FASTLED HOOKS ***********
 uint16_t CustomEffect_fillnoise8() {
-  // Fill the x/y array of 8-bit noise values using the inoise8 function.
-
-  fastled_speed = 3;
-  scale = 60;
   colorLoop = 1;
+
+  // SPEED: Speed determines how fast time moves forward.
+  // 1 = very slow moving effect
+  // 60 = for something that ends up looking like water.
+  fastled_speed = 3;
+
+  // SCALE: Scale determines how far apart the pixels in our noise matrix are.
+  // The higher the value of scale, the more "zoomed out" the noise will be.
+  // 1 = zoomed in, you'll mostly see solid colors.
+  scale = 30;
+
+
 
   // Process Color Palette Changes
   ProcessColorPalette();
@@ -888,6 +888,18 @@ void ProcessColorPalette() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
+  else if (palette == "CoolWhiteWithCyan_p") {
+    CRGB color1 = coolwhite;
+    CRGB color2 = black;
+    CRGB color3 = cyan;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+
   else if (palette == "CyanWithGreen_p") {
     CRGB color1 = cyan;
     CRGB color2 = green;
