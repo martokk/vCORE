@@ -4,7 +4,9 @@ vCORE Universal IoT Device v1.4.28
 
 */
 
-#define FASTLED_ALLOW_INTERRUPTS 0
+// #define FASTLED_ALLOW_INTERRUPTS 0
+// #define FASTLED_INTERRUPT_RETRY_COUNT 1
+// #define FASTLED_INTERRUPT_RETRY_COUNT 0
 
 /************ INCLUDES ****************/
 #include <Arduino.h>          // Required. Using .cpp file insteal .ino
@@ -38,6 +40,7 @@ void CheckPir();
 
 uint16_t CustomEffect_fillnoise8();
 void Effect_fillnoise8();
+void Effect_fillnoise8_2();
 void MapNoiseToLEDsUsingPalette();
 
 /************ SET VARIABLES ****************/
@@ -53,13 +56,14 @@ int g_color = -1;
 int b_color = -1;
 int color_temp = -1;
 int brightness = -1;
-int speed = 1000;
+int speed = 5000;
 int transitionTime;
 int effect = -1;
 const char* effect_char;
 String effect_string;
 const char* palette_char;
 String palette;
+bool paletteOn = false;
 
 // LED Strips
 WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
@@ -71,9 +75,10 @@ static uint16_t y = random16();
 static uint16_t z = random16();
 uint8_t maxPaletteBlendChanges = 40;
 uint8_t colorLoop = 1;
-uint8_t noise[LED1_COUNT][LED1_COUNT];
+uint8_t noise[LED1_COUNT];
 uint16_t fastled_speed;
 uint16_t scale;
+static uint16_t dist = random(12345);
 
 // Buttons
 int reset_button_state = 0;
@@ -118,10 +123,10 @@ IRsend irsend(IR_TRANSMITTER1_PIN);
 /************ SETUP & MAIN LOOP ****************/
 void setup() {
   // Start Serial
-  Serial.begin(115200);
-  Serial.println();
-  Serial.println();
-  Serial.println("Device: Booting");
+  // Serial.begin(115200);
+  // Serial.println();
+  // Serial.println();
+  // Serial.println("Device: Booting");
 
   // Initialize Reset Button
   if (TOTAL_RESET_BUTTONS > 0 ) {
@@ -167,20 +172,20 @@ void setup() {
 
 void SetupWifi() {
   delay(10);
-  Serial.println();
-  Serial.print("WiFi: ");
+  // Serial.println();
+  // Serial.print("WiFi: ");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-
+WiFi.setSleepMode(WIFI_NONE_SLEEP);
   while (WiFi.status() != WL_CONNECTED) {
     delay(200);
   }
 
-  Serial.print("Connected to ");
-  Serial.println(WIFI_SSID);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  // Serial.print("Connected to ");
+  // Serial.println(WIFI_SSID);
+  // Serial.print("IP address: ");
+  // Serial.println(WiFi.localIP());
 }
 
 void ReconnectMqtt() {
@@ -188,10 +193,10 @@ void ReconnectMqtt() {
   int retry = 0;
   while (!client.connected()) {
     ArduinoOTA.handle();
-    Serial.print("MQTT: ");
+    // Serial.print("MQTT: ");
     // Attempt to connect
     if (client.connect(DEVICE_NAME, MQTT_USER, MQTT_PASS)) {
-      Serial.println("Connected");
+      // Serial.println("Connected");
 
       // client.publish(PUB_LED1_POWER, "ON");
       // client.publish(PUB_LED1_COLOR, "255,255,255");
@@ -221,15 +226,15 @@ void ReconnectMqtt() {
           // Device is now Ready!
       if (device_ready == false) {
         device_ready = true;
-        Serial.println("------------ DEVICE CONNECTED ------------");
-        Serial.println();
+        // Serial.println("------------ DEVICE CONNECTED ------------");
+        // Serial.println();
       }
       retry = 0;
     } else {
-      Serial.print("FAILED!; rc=");
-      Serial.print(client.state());
-      Serial.print("; retry=");
-      Serial.print(retry);
+      // Serial.print("FAILED!; rc=");
+      // Serial.print(client.state());
+      // Serial.print("; retry=");
+      // Serial.print(retry);
 
       if (WiFi.status() != WL_CONNECTED) {
         SetupWifi();
@@ -240,7 +245,7 @@ void ReconnectMqtt() {
       retry = retry + 1;
       delay(5000);
       if (retry >= 10) {
-        Serial.println("MQTT Failed: Resetting Device");
+        // Serial.println("MQTT Failed: Resetting Device");
 
         // led1.stop();
         // led1.service();
@@ -262,24 +267,24 @@ void SetupOta() {
   // ArduinoOTA.setPassword(PASS); // same as wifi (via credentials.h)
 
   ArduinoOTA.onStart([]() {
-    Serial.println("Start");
+    // Serial.println("Start");
   });
   ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
+    // Serial.println("\nEnd");
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    // Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
   });
   ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    // Serial.printf("Error[%u]: ", error);
+    // if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    // else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    // else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    // else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    // else if (error == OTA_END_ERROR) Serial.println("End Failed");
   });
   ArduinoOTA.begin();
-  Serial.println("OTA Update: Connected");
+  // Serial.println("OTA Update: Connected");
 }
 
 void loop() {
@@ -329,7 +334,7 @@ void loop() {
 void CheckDeviceReset() {
   reset_button_state = digitalRead(RESET_BUTTON_PIN);
   if (reset_button_state == HIGH ) {
-    Serial.println("Reset Button Pressed. Resetting device.");
+    // Serial.println("Reset Button Pressed. Resetting device.");
     led1.setColor(255,0,255);
     led1.start();
     led1.service();
@@ -365,7 +370,7 @@ void CheckButtons() {
   button1_state = digitalRead(BUTTON1_PIN);
   if (button1_state == HIGH ) {
     if (millis() > button_loop_interval) {
-      Serial.println("Button1 was pressed!");
+      // Serial.println("Button1 was pressed!");
       client.publish(PUB_BUTTON1, "1", true);
 
       delay(50);
@@ -500,7 +505,7 @@ void CheckDht(){
     // Check if humidy & temperature are availble from DHT
     if (isnan(humidity) || isnan(temperature)) {
       if (dht_reconnect == false) {
-        Serial.println("Failed to read from DHT sensor!");
+        // Serial.println("Failed to read from DHT sensor!");
         client.publish(PUB_DEBUG, "DHT sensor  === OFFLINE ===");
         dht_reconnect = true;
       }
@@ -512,7 +517,7 @@ void CheckDht(){
     }
 
     // DEBUG
-    Serial.println("DEBUG: " + String(temperature));
+    // Serial.println("DEBUG: " + String(temperature));
 
     // Add current temp to rolling totals
     dht_rolling_temperature_total = dht_rolling_temperature_total + temperature;
@@ -526,7 +531,7 @@ void CheckDht(){
 
       client.publish(PUB_TEMPERATURE, String(dht_average_temperature).c_str(), true);
       client.publish(PUB_HUMIDITY, String(dht_average_humidity).c_str(), true);
-      Serial.println("Temperature: " + String(dht_average_temperature) + ";  Humidity: " + String(dht_average_humidity));
+      // Serial.println("Temperature: " + String(dht_average_temperature) + ";  Humidity: " + String(dht_average_humidity));
 
       dht_rolling_temperature_total = 0;
       dht_rolling_humidity_total = 0;
@@ -540,9 +545,9 @@ void CheckDht(){
 
 /************ MQTT ****************/
 void MqttCallback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
+  // Serial.print("Message arrived [");
+  // Serial.print(topic);
+  // Serial.print("] ");
   // client.publish(PUB_DEBUG, topic, true);
 
   char message[length + 1];
@@ -550,7 +555,7 @@ void MqttCallback(char* topic, byte* payload, unsigned int length) {
     message[i] = (char)payload[i];
   }
   message[length] = '\0';
-  Serial.println(message);
+  // Serial.println(message);
 
 
   // Process MQTT Topic - PALETTE
@@ -583,7 +588,7 @@ bool ProcessMqttJson(char* message) {
   JsonObject& root = jsonBuffer.parseObject(message);
   // client.publish(PUB_DEBUG, "Parsing JSON", true);
   if (!root.success()) {
-    Serial.println("parseObject() failed");
+    // Serial.println("parseObject() failed");
     client.publish(PUB_DEBUG, "parseObject() failed", true);
     // client.publish(PUB_DEBUG, String(message).c_str(), true);
     return false;
@@ -759,13 +764,12 @@ uint16_t CustomEffect_fillnoise8() {
   // SPEED: Speed determines how fast time moves forward.
   // 1 = very slow moving effect
   // 60 = for something that ends up looking like water.
-  fastled_speed = 3;
+  fastled_speed = 2;
 
   // SCALE: Scale determines how far apart the pixels in our noise matrix are.
   // The higher the value of scale, the more "zoomed out" the noise will be.
   // 1 = zoomed in, you'll mostly see solid colors.
-  scale = 30;
-
+  scale = 3500 / LED1_COUNT;
 
 
   // Process Color Palette Changes
@@ -779,24 +783,24 @@ uint16_t CustomEffect_fillnoise8() {
   // - the default of 24 is a good balance
   // - meaningful values are 1-48. 1=veeeeeeeery slow, 48=quickest
   // - "0" means do not change the currentPalette at all; freeze
-
-  nblendPaletteTowardPalette( currentPalette, targetPalette, maxPaletteBlendChanges);
+  EVERY_N_MILLISECONDS(10) { // Blend towards the target palette
+    nblendPaletteTowardPalette(currentPalette, targetPalette, maxPaletteBlendChanges);
+  }
 
   // generate noise data
   Effect_fillnoise8();
 
   // convert the noise data to colors in the LED array
   // using the current palette
-  MapNoiseToLEDsUsingPalette();
+  // MapNoiseToLEDsUsingPalette();
 
-
-  show_at_max_brightness_for_power();
-  delay_at_max_brightness_for_power(led1.getSpeed() / led1.getLength());
+  delay_at_max_brightness_for_power(led1.getSpeed() / LED1_COUNT);
 }
 
 
 // ********** FASTLED EFFECTS ***********
 void Effect_fillnoise8() {
+  static uint8_t ihue=0;
   // If we're runing at a low "speed", some 8-bit artifacts become visible
   // from frame-to-frame.  In order to reduce this, we can do some fast data-smoothing.
   // The amount of data smoothing we're doing depends on "speed".
@@ -807,10 +811,10 @@ void Effect_fillnoise8() {
 
   for(int i = 0; i < LED1_COUNT; i++) {
     int ioffset = scale * i;
-    for(int j = 0; j < LED1_COUNT; j++) {
-      int joffset = scale * j;
 
-      uint8_t data = inoise8(x + ioffset,y + joffset,z);
+
+      uint8_t data = inoise8(i * scale, dist + i * scale) % 255;
+
 
       // The range of the inoise8 function is roughly 16-238.
       // These two operations expand those values out to roughly 0..255
@@ -819,22 +823,36 @@ void Effect_fillnoise8() {
       data = qadd8(data,scale8(data,39));
 
       if( dataSmoothing ) {
-        uint8_t olddata = noise[i][j];
+        uint8_t olddata = noise[i];
         uint8_t newdata = scale8( olddata, dataSmoothing) + scale8( data, 256 - dataSmoothing);
         data = newdata;
       }
 
-      noise[i][j] = data;
-    }
+      noise[i] = data;
+      uint8_t index = noise[i];
+
+      if( colorLoop) {
+        index += ihue;
+      }
+      //
+      // if( bri > 127 ) {
+      //   bri = 255;
+      // } else {
+      //   bri = dim8_raw( bri * 2);
+      // }
+
+      CRGB color = ColorFromPalette( currentPalette, index, 255, LINEARBLEND);
+      leds[i] = color;
+
+      // Set WS2812FX to FASTLED COLORS
+      led1.setPixelColor(i, leds[i].green, leds[i].red, leds[i].blue);
+
   }
 
-  z += fastled_speed;
+  ihue+=1;
+  dist += beatsin8(5, 1, 2);
 
-  // apply slow drift to X and Y, just for visual variation.
-  x += fastled_speed / 8;
-  y -= fastled_speed / 16;
 }
-
 
 /************ FASTLED: FUNCTIONS ****************/
 void ProcessColorPalette() {
@@ -936,7 +954,7 @@ void ProcessColorPalette() {
   else if (palette == "GreenWithPurple_p") {
     CRGB color1 = green;
     CRGB color2 = purple;
-    CRGB color3 = green;
+    CRGB color3 = purple;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -1012,7 +1030,7 @@ void ProcessColorPalette() {
   }
   else if (palette == "PurpleWithGreen_p") {
     CRGB color1 = purple;
-    CRGB color2 = purple;
+    CRGB color2 = green;
     CRGB color3 = green;
 
     targetPalette = CRGBPalette16(
@@ -1055,8 +1073,9 @@ void ProcessColorPalette() {
       color1,   color1,   color1,   black );
   }
 
-  if (currentPalette  = CRGB(-1, -1, -1) ) {
+  if (paletteOn == false) {
     currentPalette = targetPalette;
+    paletteOn = true;
   }
 }
 
@@ -1137,36 +1156,38 @@ void ConvertTempToRGB(unsigned int kelvin) {
 //     }
 //   }
 // }
-
-void MapNoiseToLEDsUsingPalette(){
-  static uint8_t ihue=0;
-
-  for(int i = 0; i < LED1_COUNT; i++) {
-
-    // We use the value at the (i,j) coordinate in the noise
-    // array for our brightness, and the flipped value from (j,i)
-    // for our pixel's index into the color palette.
-
-    uint8_t index = noise[0][i];
-    uint8_t bri =   noise[i][0];
-
-    // if this palette is a 'loop', add a slowly-changing base value
-    if( colorLoop) {
-      index += ihue;
-    }
-
-    // brighten up, as the color palette itself often contains the
-    // light/dark dynamic range desired
-    if( bri > 127 ) {
-      bri = 255;
-    } else {
-      bri = dim8_raw( bri * 2);
-    }
-
-    CRGB color = ColorFromPalette( currentPalette, index, bri);
-    leds[i] = color;
-    led1.setPixelColor(i, leds[i].green, leds[i].red, leds[i].blue);
-  }
-
-  ihue+=1;
-}
+//
+// void MapNoiseToLEDsUsingPalette(){
+//   static uint8_t ihue=0;
+//
+//   for(int i = 0; i < LED1_COUNT; i++) {
+//
+//     // We use the value at the (i,j) coordinate in the noise
+//     // array for our brightness, and the flipped value from (j,i)
+//     // for our pixel's index into the color palette.
+//
+//     uint8_t index = noise[0][i];
+//     uint8_t bri =   noise[i][0];
+//
+//     // if this palette is a 'loop', add a slowly-changing base value
+//     if( colorLoop) {
+//       index += ihue;
+//     }
+//
+//     // brighten up, as the color palette itself often contains the
+//     // light/dark dynamic range desired
+//     if( bri > 127 ) {
+//       bri = 255;
+//     } else {
+//       bri = dim8_raw( bri * 2);
+//     }
+//
+//     CRGB color = ColorFromPalette( currentPalette, index, bri);
+//     leds[i] = color;
+//
+//     // Set WS2812FX to FASTLED COLORS
+//     led1.setPixelColor(i, leds[i].green, leds[i].red, leds[i].blue);
+//   }
+//
+//
+// }
