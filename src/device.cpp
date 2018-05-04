@@ -774,7 +774,7 @@ uint16_t CustomEffect_fillnoise8() {
   // SCALE: Scale determines how far apart the pixels in our noise matrix are.
   // The higher the value of scale, the more "zoomed out" the noise will be.
   // 1 = zoomed in, you'll mostly see solid colors.
-  scale = 2500 / LED1_COUNT;
+  scale = 500 / LED1_COUNT;
 
   // Process Color Palette Changes
   ProcessColorPalette();
