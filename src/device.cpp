@@ -774,7 +774,7 @@ uint16_t CustomEffect_fillnoise8() {
   // SCALE: Scale determines how far apart the pixels in our noise matrix are.
   // The higher the value of scale, the more "zoomed out" the noise will be.
   // 1 = zoomed in, you'll mostly see solid colors.
-  scale = 2500 / LED1_COUNT;
+  scale = 2000 / LED1_COUNT;
 
   // Process Color Palette Changes
   ProcessColorPalette();
@@ -902,7 +902,7 @@ void ProcessColorPalette() {
 
   CRGB red = CRGB::Red; // Main color
   CRGB orange = CRGB( 255, 106, 0); // Main color
-  CRGB yellow = CRGB( 255, 195, 0); // Main color
+  CRGB yellow = CRGB( 255, 185, 0); // Main color
   CRGB green = CRGB::Green; // Main color
   CRGB cyan = CRGB( 1, 254, 207); // Main color
   CRGB blue = CRGB::Blue; // Main color
