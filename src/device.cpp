@@ -39,9 +39,9 @@ void CheckDht();
 void CheckPir();
 
 uint16_t CustomEffect_fillnoise8();
+uint16_t CustomEffect_bpm();
 void Effect_fillnoise8();
-void Effect_fillnoise8_2();
-void MapNoiseToLEDsUsingPalette();
+void Effect_bpm();
 
 /************ SET VARIABLES ****************/
 // WIFI, MQTT, JSON
@@ -68,17 +68,18 @@ bool paletteOn = false;
 // LED Strips
 WS2812FX led1 = WS2812FX(LED1_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
 CRGB leds[LED1_COUNT];
-CRGBPalette16 currentPalette( CRGB(-1, -1, -1));
-CRGBPalette16 targetPalette( CRGB(-1, -1, -1) );
+CRGBPalette16 currentPalette;
+CRGBPalette16 targetPalette;
 static uint16_t x = random16();
 static uint16_t y = random16();
 static uint16_t z = random16();
-uint8_t maxPaletteBlendChanges = 40;
+uint8_t maxPaletteBlendChanges = 48;
 uint8_t colorLoop = 1;
 uint8_t noise[LED1_COUNT];
 uint16_t fastled_speed;
 uint16_t scale;
 static uint16_t dist = random(12345);
+uint8_t gHue = 0;
 
 // Buttons
 int reset_button_state = 0;
@@ -740,16 +741,20 @@ void ShowLedState() {
 
 
     // Effect
-    if (effect == 56) {
-      led1.setCustomMode(CustomEffect_fillnoise8);
+    switch (effect) {
+      case  56: led1.setCustomMode(CustomEffect_fillnoise8); break;
+      case  57: led1.setCustomMode(CustomEffect_bpm); break;
     }
     led1.setMode(effect);
 
     // Speed
     led1.setSpeed(speed);
 
-    led1.init();
-    led1.start();
+    if (paletteOn == true) {
+      led1.init();
+      led1.start();
+    }
+
 
   } else {
     led1.stop();
@@ -769,8 +774,33 @@ uint16_t CustomEffect_fillnoise8() {
   // SCALE: Scale determines how far apart the pixels in our noise matrix are.
   // The higher the value of scale, the more "zoomed out" the noise will be.
   // 1 = zoomed in, you'll mostly see solid colors.
-  scale = 3500 / LED1_COUNT;
+  scale = 2500 / LED1_COUNT;
 
+  // Process Color Palette Changes
+  ProcessColorPalette();
+
+  // Transition Current Palette Towards Target Palettee
+  //
+  // Each time that nblendPaletteTowardPalette is called, small changes
+  // are made to currentPalette to bring it closer to matching targetPalette.
+  // You can control how many changes are made in each call:
+  // - the default of 24 is a good balance
+  // - meaningful values are 1-48. 1=veeeeeeeery slow, 48=quickest
+  // - "0" means do not change the currentPalette at all; freeze
+  EVERY_N_MILLISECONDS(1) { // Blend towards the target palette
+    if (paletteOn == true) {
+      nblendPaletteTowardPalette(currentPalette, targetPalette, maxPaletteBlendChanges);
+    }
+  }
+
+  // Effect
+  Effect_fillnoise8();
+
+  delay_at_max_brightness_for_power(led1.getSpeed() / LED1_COUNT);
+}
+
+uint16_t CustomEffect_bpm() {
+  colorLoop = 1;
 
   // Process Color Palette Changes
   ProcessColorPalette();
@@ -787,16 +817,13 @@ uint16_t CustomEffect_fillnoise8() {
     nblendPaletteTowardPalette(currentPalette, targetPalette, maxPaletteBlendChanges);
   }
 
-  // generate noise data
-  Effect_fillnoise8();
+  EVERY_N_MILLISECONDS( 20 ) { gHue++; }
 
-  // convert the noise data to colors in the LED array
-  // using the current palette
-  // MapNoiseToLEDsUsingPalette();
+  // Effect
+  Effect_bpm();
 
   delay_at_max_brightness_for_power(led1.getSpeed() / LED1_COUNT);
 }
-
 
 // ********** FASTLED EFFECTS ***********
 void Effect_fillnoise8() {
@@ -850,8 +877,20 @@ void Effect_fillnoise8() {
   }
 
   ihue+=1;
-  dist += beatsin8(5, 1, 2);
+  dist += beatsin8(10, 1, 4);
 
+}
+
+void Effect_bpm() {
+    // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+  uint8_t BeatsPerMinute = 120;
+  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
+  for( int i = 0; i < LED1_COUNT; i++) {
+    leds[i] = ColorFromPalette(currentPalette, gHue+(i*2), beat-gHue+(i*10));
+
+    // Set WS2812FX to FASTLED COLORS
+    led1.setPixelColor(i, leds[i].green, leds[i].red, leds[i].blue);
+  }
 }
 
 /************ FASTLED: FUNCTIONS ****************/
@@ -862,17 +901,17 @@ void ProcessColorPalette() {
   // CRGB red = CRGB::Red;
 
   CRGB red = CRGB::Red; // Main color
-  CRGB orange = CRGB::Orange; // Main color
-  CRGB yellow = CRGB::Yellow; // Main color
+  CRGB orange = CRGB( 255, 106, 0); // Main color
+  CRGB yellow = CRGB::Gold; // Main color
   CRGB green = CRGB::Green; // Main color
-  CRGB cyan = CRGB::Cyan; // Main color
+  CRGB cyan = CRGB( 1, 254, 207); // Main color
   CRGB blue = CRGB::Blue; // Main color
-  CRGB purple = CRGB::DarkViolet; // Main color
+  CRGB purple = CRGB( 179, 0, 255); // Main color
   CRGB magenta = CRGB::Magenta; // Main color
   CRGB black  = CRGB::Black;
   CRGB coolwhite  = CRGB( 255, 175, 125);
   CRGB warmwhite  = CRGB( 255, 155, 55) ;
-  CRGB random = CHSV( random8(), 255, 255);
+  CRGB random = CHSV( random8(), 255, 128);
 
 
   if (palette == "CloudColors_p") { targetPalette = CloudColors_p;}
@@ -895,10 +934,10 @@ void ProcessColorPalette() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (palette == "CoolWhiteWithRandom_p") {
+  else if (palette == "CoolWhiteWithBlack_p") {
     CRGB color1 = coolwhite;
-    CRGB color2 = random;
-    CRGB color3 = random;
+    CRGB color2 = black;
+    CRGB color3 = warmwhite;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -932,7 +971,7 @@ void ProcessColorPalette() {
   else if (palette == "CyanWithPurple_p") {
     CRGB color1 = cyan;
     CRGB color2 = purple;
-    CRGB color3 = blue;
+    CRGB color3 = cyan;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -976,7 +1015,7 @@ void ProcessColorPalette() {
   else if (palette == "OrangeWithRed_p") {
     CRGB color1 = orange;
     CRGB color2 = red;
-    CRGB color3 = magenta;
+    CRGB color3 = yellow;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -985,9 +1024,9 @@ void ProcessColorPalette() {
       color1,   color1,   color1,   black );
   }
   else if (palette == "Party_p") {
-    CRGB color1 = CHSV( random8(), random8(), random8());
-    CRGB color2 = CHSV( random8(), random8(), random8());
-    CRGB color3 = CHSV( random8(), random8(), random8());
+    CRGB color1 = CHSV( random8(), 255, 128);
+    CRGB color2 = CHSV( random8(), 255, 128);
+    CRGB color3 = CHSV( random8(), 255, 128);
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -1042,7 +1081,7 @@ void ProcessColorPalette() {
   else if (palette == "RedWithBlack_p") {
     CRGB color1 = red;
     CRGB color2 = CRGB::DarkRed;
-    CRGB color3 = CRGB::Crimson;
+    CRGB color3 = black;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -1053,7 +1092,7 @@ void ProcessColorPalette() {
   else if (palette == "RedWithOragnge_p") {
     CRGB color1 = red;
     CRGB color2 = orange;
-    CRGB color3 = yellow;
+    CRGB color3 = black;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -1063,6 +1102,17 @@ void ProcessColorPalette() {
   }
   else if (palette == "WarmWhiteWithBlack_p") {
     CRGB color1 = warmwhite;
+    CRGB color2 = black;
+    CRGB color3 = coolwhite;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "YellowWithBlack_p") {
+    CRGB color1 = yellow;
     CRGB color2 = black;
     CRGB color3 = coolwhite;
 

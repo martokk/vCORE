@@ -33,7 +33,7 @@ vCORE Universal IoT Device v1.4.28
   #define LED_BRIGHTNESS_LIMIT      0         // Limit Brightnes Level (Max = 255)
 
   #define LED1_PIN                  0         // Arduno pin
-  #define LED1_COUNT                0         // Total LEDs
+  #define LED1_COUNT                1         // Total LEDs
 
 /********** PIR ***************************************/
   #define TOTAL_PIR_SENSORS         0
