@@ -769,12 +769,12 @@ uint16_t CustomEffect_fillnoise8() {
   // SPEED: Speed determines how fast time moves forward.
   // 1 = very slow moving effect
   // 60 = for something that ends up looking like water.
-  fastled_speed = 2;
+  fastled_speed = 1;
 
   // SCALE: Scale determines how far apart the pixels in our noise matrix are.
   // The higher the value of scale, the more "zoomed out" the noise will be.
   // 1 = zoomed in, you'll mostly see solid colors.
-  scale = 500 / LED1_COUNT;
+  scale = 1500 / LED1_COUNT;
 
   // Process Color Palette Changes
   ProcessColorPalette();
@@ -877,7 +877,7 @@ void Effect_fillnoise8() {
   }
 
   ihue+=1;
-  dist += beatsin8(10, 1, 4);
+  dist += beatsin8(2, 1, 4);
 
 }
 
