@@ -750,10 +750,10 @@ void ShowLedState() {
     // Speed
     led1.setSpeed(speed);
 
-    if (paletteOn == true) {
+    // if (paletteOn == true) {
       led1.init();
       led1.start();
-    }
+    // }
 
 
   } else {
@@ -774,7 +774,7 @@ uint16_t CustomEffect_fillnoise8() {
   // SCALE: Scale determines how far apart the pixels in our noise matrix are.
   // The higher the value of scale, the more "zoomed out" the noise will be.
   // 1 = zoomed in, you'll mostly see solid colors.
-  scale = 1500 / LED1_COUNT;
+  scale = 2500 / LED1_COUNT;
 
   // Process Color Palette Changes
   ProcessColorPalette();
@@ -788,9 +788,9 @@ uint16_t CustomEffect_fillnoise8() {
   // - meaningful values are 1-48. 1=veeeeeeeery slow, 48=quickest
   // - "0" means do not change the currentPalette at all; freeze
   EVERY_N_MILLISECONDS(1) { // Blend towards the target palette
-    if (paletteOn == true) {
+    // if (paletteOn == true) {
       nblendPaletteTowardPalette(currentPalette, targetPalette, maxPaletteBlendChanges);
-    }
+    // }
   }
 
   // Effect
@@ -902,7 +902,7 @@ void ProcessColorPalette() {
 
   CRGB red = CRGB::Red; // Main color
   CRGB orange = CRGB( 255, 106, 0); // Main color
-  CRGB yellow = CRGB::Gold; // Main color
+  CRGB yellow = CRGB( 255, 195, 0); // Main color
   CRGB green = CRGB::Green; // Main color
   CRGB cyan = CRGB( 1, 254, 207); // Main color
   CRGB blue = CRGB::Blue; // Main color
@@ -1123,10 +1123,10 @@ void ProcessColorPalette() {
       color1,   color1,   color1,   black );
   }
 
-  if (paletteOn == false) {
-    currentPalette = targetPalette;
-    paletteOn = true;
-  }
+  // if (paletteOn == false) {
+  //   currentPalette = targetPalette;
+  //   paletteOn = true;
+  // }
 }
 
 void ConvertTempToRGB(unsigned int kelvin) {
