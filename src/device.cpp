@@ -56,7 +56,7 @@ int g_color = -1;
 int b_color = -1;
 int color_temp = -1;
 int brightness = -1;
-int speed = 5000;
+int speed = 5500;
 int transitionTime;
 int effect = -1;
 const char* effect_char;
@@ -774,7 +774,7 @@ uint16_t CustomEffect_fillnoise8() {
   // SCALE: Scale determines how far apart the pixels in our noise matrix are.
   // The higher the value of scale, the more "zoomed out" the noise will be.
   // 1 = zoomed in, you'll mostly see solid colors.
-  scale = 2000 / LED1_COUNT;
+  scale = 1000 / LED1_COUNT;
 
   // Process Color Palette Changes
   ProcessColorPalette();
