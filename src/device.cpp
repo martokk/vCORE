@@ -952,9 +952,8 @@ void ProcessColorPalette() {
   CHSV current_sub25 = CHSV(current_chsv.hue - 50, current_chsv.sat, current_chsv.val);
   CHSV current_sub30 = CHSV(current_chsv.hue - 60, current_chsv.sat, current_chsv.val);
 
-
-  if (palette == "CloudColors_p") { targetPalette = CloudColors_p;}
   // Default
+  if (palette == "CloudColors_p") { targetPalette = CloudColors_p;}
   else if (palette == "LavaColors_p") { targetPalette = LavaColors_p;}
   else if (palette == "OceanColors_p") { targetPalette = OceanColors_p;}
   else if (palette == "ForestColors_p") { targetPalette = ForestColors_p;}
@@ -964,51 +963,6 @@ void ProcessColorPalette() {
   else if (palette == "HeatColors_p") { targetPalette = HeatColors_p;}
 
   // Current Color
-  else if (palette == "CurrentWithBlack_p") {
-    CRGB color1 = current;
-    CRGB color2 = current;
-    CRGB color3 = black;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-  else if (palette == "CurrentWithCoolWhite_p") {
-    CRGB color1 = current;
-    CRGB color2 = current;
-    CRGB color3 = coolwhite;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-  else if (palette == "CurrentWithWarmWhite_p") {
-    CRGB color1 = current;
-    CRGB color2 = current;
-    CRGB color3 = warmwhite;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-  else if (palette == "CurrentWithWhite_p") {
-    CRGB color1 = current;
-    CRGB color2 = coolwhite;
-    CRGB color3 = warmwhite;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-
   else if (palette == "CurrentWithCurrentAdd5") {
     CRGB color1 = current;
     CRGB color2 = current_add5;
@@ -1075,74 +1029,6 @@ void ProcessColorPalette() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-
-  else if (palette == "CurrentWithCurrentSub5") {
-    CRGB color1 = current;
-    CRGB color2 = current_sub5;
-    CRGB color3 = current;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-  else if (palette == "CurrentWithCurrentSub10") {
-    CRGB color1 = current;
-    CRGB color2 = current_sub10;
-    CRGB color3 = current;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-  else if (palette == "CurrentWithCurrentSub15") {
-    CRGB color1 = current;
-    CRGB color2 = current_sub15;
-    CRGB color3 = current;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-  else if (palette == "CurrentWithCurrentSub20") {
-    CRGB color1 = current;
-    CRGB color2 = current_sub20;
-    CRGB color3 = current;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-  else if (palette == "CurrentWithCurrentSub25") {
-    CRGB color1 = current;
-    CRGB color2 = current_sub25;
-    CRGB color3 = current;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-  else if (palette == "CurrentWithCurrentSub30") {
-    CRGB color1 = current;
-    CRGB color2 = current_sub30;
-    CRGB color3 = current;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-
   else if (palette == "CurrentWithCurrentAug5") {
     CRGB color1 = current;
     CRGB color2 = current_sub5;
@@ -1209,11 +1095,141 @@ void ProcessColorPalette() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
+  else if (palette == "CurrentWithCurrentSub5") {
+    CRGB color1 = current;
+    CRGB color2 = current_sub5;
+    CRGB color3 = current;
 
-  // Custom Themes
-  else if (palette == "BlueWithPurple_p") {
-    CRGB color1 = blue;
-    CRGB color2 = purple;
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithCurrentSub10") {
+    CRGB color1 = current;
+    CRGB color2 = current_sub10;
+    CRGB color3 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithCurrentSub15") {
+    CRGB color1 = current;
+    CRGB color2 = current_sub15;
+    CRGB color3 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithCurrentSub20") {
+    CRGB color1 = current;
+    CRGB color2 = current_sub20;
+    CRGB color3 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithCurrentSub25") {
+    CRGB color1 = current;
+    CRGB color2 = current_sub25;
+    CRGB color3 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithCurrentSub30") {
+    CRGB color1 = current;
+    CRGB color2 = current_sub30;
+    CRGB color3 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithBlack_p") {
+    CRGB color1 = current;
+    CRGB color2 = current;
+    CRGB color3 = black;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithCoolWhite_p") {
+    CRGB color1 = current;
+    CRGB color2 = current;
+    CRGB color3 = coolwhite;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithWarmWhite_p") {
+    CRGB color1 = current;
+    CRGB color2 = current;
+    CRGB color3 = warmwhite;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithWhite_p") {
+    CRGB color1 = current;
+    CRGB color2 = coolwhite;
+    CRGB color3 = warmwhite;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithWhiteAndBlack_p") {
+    CRGB color1 = current;
+    CRGB color2 = coolwhite;
+    CRGB color3 = warmwhite;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   black,   color1,   black,
+      color1,   black,   color3,   black,
+      color1,   black,   color1,   black );
+  }
+  else if (palette == "CurrentWithBlue_p") {
+    CRGB color1 = current;
+    CRGB color2 = blue;
+    CRGB color3 = blue;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithCyan_p") {
+    CRGB color1 = current;
+    CRGB color2 = cyan;
     CRGB color3 = cyan;
 
     targetPalette = CRGBPalette16(
@@ -1222,6 +1238,198 @@ void ProcessColorPalette() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
+  else if (palette == "CurrentWithGreen_p") {
+    CRGB color1 = current;
+    CRGB color2 = green;
+    CRGB color3 = green;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithMagenta_p") {
+    CRGB color1 = current;
+    CRGB color2 = magenta;
+    CRGB color3 = magenta;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithOrange_p") {
+    CRGB color1 = current;
+    CRGB color2 = orange;
+    CRGB color3 = orange;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithPurple_p") {
+    CRGB color1 = current;
+    CRGB color2 = purple;
+    CRGB color3 = purple;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithRed_p") {
+    CRGB color1 = current;
+    CRGB color2 = red;
+    CRGB color3 = red;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "CurrentWithYellow_p") {
+    CRGB color1 = current;
+    CRGB color2 = yellow;
+    CRGB color3 = yellow;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+
+  // Color With Current
+  else if (palette == "BlackWithCurrent_p") {
+    CRGB color1 = current;
+    CRGB color2 = black;
+    CRGB color3 = black;
+
+    targetPalette = CRGBPalette16(
+    color2,   color1,   color1,   black,
+    color3,   color1,   color3,   black,
+    color2,   color1,   color3,   black,
+    color2,   color1,   color2,   black );
+  }
+  else if (palette == "CoolWhiteWithCurrent_p") {
+    CRGB color1 = current;
+    CRGB color2 = coolwhite;
+
+    targetPalette = CRGBPalette16(
+    color2,   color1,   color1,   black,
+    color2,   color1,   color2,   black,
+    color2,   color1,   color2,   black,
+    color2,   color1,   color2,   black );
+  }
+  else if (palette == "WarmWhiteWithCurrent_p") {
+    CRGB color1 = current;
+    CRGB color2 = warmwhite;
+
+    targetPalette = CRGBPalette16(
+    color2,   color1,   color1,   black,
+    color2,   color1,   color2,   black,
+    color2,   color1,   color2,   black,
+    color2,   color1,   color2,   black );
+  }
+  else if (palette == "WhiteWithCurrent_p") {
+    CRGB color1 = current;
+    CRGB color2 = coolwhite;
+    CRGB color3 = warmwhite;
+
+    targetPalette = CRGBPalette16(
+    color2,   color1,   color1,   black,
+    color3,   color2,   color3,   black,
+    color2,   color1,   color3,   black,
+    color2,   color3,   color2,   black );
+  }
+  else if (palette == "BlueWithCurrent_p") {
+    CRGB color1 = blue;
+    CRGB color2 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color2,   color2,   black,
+      color1,   color1,   color2,   black,
+      color1,   color2,   black,   black,
+      color1,   color1,   color2,   black);
+  }
+  else if (palette == "CyanWithCurrent_p") {
+    CRGB color1 = cyan;
+    CRGB color2 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color2,   color2,   black,
+      color1,   color1,   color2,   black,
+      color1,   color2,   black,   black,
+      color1,   color1,   color2,   black);
+  }
+  else if (palette == "GreenWithCurrent_p") {
+    CRGB color1 = green;
+    CRGB color2 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color2,   color2,   black,
+      color1,   color1,   color2,   black,
+      color1,   color2,   black,   black,
+      color1,   color1,   color2,   black);
+  }
+  else if (palette == "MagentaWithCurrent_p") {
+    CRGB color1 = magenta;
+    CRGB color2 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color2,   color2,   black,
+      color1,   color1,   color2,   black,
+      color1,   color2,   black,   black,
+      color1,   color1,   color2,   black);
+  }
+  else if (palette == "OrangeWithCurrent_p") {
+    CRGB color1 = orange;
+    CRGB color2 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color2,   color2,   black,
+      color1,   color1,   color2,   black,
+      color1,   color2,   black,   black,
+      color1,   color1,   color2,   black);
+  }
+  else if (palette == "PurpleWithCurrent_p") {
+    CRGB color1 = purple;
+    CRGB color2 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color2,   color2,   black,
+      color1,   color1,   color2,   black,
+      color1,   color2,   black,   black,
+      color1,   color1,   color2,   black);
+  }
+  else if (palette == "RedWithCurrent_p") {
+    CRGB color1 = red;
+    CRGB color2 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color2,   color2,   black,
+      color1,   color1,   color2,   black,
+      color1,   color2,   black,   black,
+      color1,   color1,   color2,   black);
+  }
+  else if (palette == "YellowWithCurrent_p") {
+    CRGB color1 = yellow;
+    CRGB color2 = current;
+
+    targetPalette = CRGBPalette16(
+      color1,   color2,   color2,   black,
+      color1,   color1,   color2,   black,
+      color1,   color2,   black,   black,
+      color1,   color1,   color2,   black);
+  }
+
+  // Custom Themes
   else if (palette == "CoolWhiteWithBlack_p") {
     CRGB color1 = coolwhite;
     CRGB color2 = black;
@@ -1236,6 +1444,29 @@ void ProcessColorPalette() {
   else if (palette == "CoolWhiteWithCyan_p") {
     CRGB color1 = coolwhite;
     CRGB color2 = black;
+    CRGB color3 = cyan;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "WarmWhiteWithBlack_p") {
+    CRGB color1 = warmwhite;
+    CRGB color2 = black;
+    CRGB color3 = coolwhite;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+
+  else if (palette == "BlueWithPurple_p") {
+    CRGB color1 = blue;
+    CRGB color2 = purple;
     CRGB color3 = cyan;
 
     targetPalette = CRGBPalette16(
@@ -1299,6 +1530,17 @@ void ProcessColorPalette() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
+  else if (palette == "MagentaWithYellow_p") {
+    CRGB color1 = magenta;
+    CRGB color2 = yellow;
+    CRGB color3 = orange;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
   else if (palette == "OrangeWithRed_p") {
     CRGB color1 = orange;
     CRGB color2 = red;
@@ -1314,17 +1556,6 @@ void ProcessColorPalette() {
     CRGB color1 = CHSV( random8(), 255, 128);
     CRGB color2 = CHSV( random8(), 255, 128);
     CRGB color3 = CHSV( random8(), 255, 128);
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
-  else if (palette == "MagentaWithYellow_p") {
-    CRGB color1 = magenta;
-    CRGB color2 = yellow;
-    CRGB color3 = orange;
 
     targetPalette = CRGBPalette16(
       color1,   color3,   color2,   black,
@@ -1387,17 +1618,6 @@ void ProcessColorPalette() {
       color1,   color2,   color1,   black,
       color1,   color1,   color1,   black );
   }
-  else if (palette == "WarmWhiteWithBlack_p") {
-    CRGB color1 = warmwhite;
-    CRGB color2 = black;
-    CRGB color3 = coolwhite;
-
-    targetPalette = CRGBPalette16(
-      color1,   color3,   color2,   black,
-      color1,   color1,   color1,   black,
-      color1,   color2,   color1,   black,
-      color1,   color1,   color1,   black );
-  }
   else if (palette == "YellowWithBlack_p") {
     CRGB color1 = yellow;
     CRGB color2 = black;
@@ -1407,6 +1627,29 @@ void ProcessColorPalette() {
       color1,   color3,   color2,   black,
       color1,   color1,   color1,   black,
       color1,   color2,   color1,   black,
+      color1,   color1,   color1,   black );
+  }
+
+  else if (palette == "Rain_p") {
+    CRGB color1 = warmwhite;
+    CRGB color2 = blue;
+    CRGB color3 = green;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color2,   color2,   color2,   black,
+      color1,   color1,   color1,   black );
+  }
+  else if (palette == "Snow_p") {
+    CRGB color1 = coolwhite;
+    CRGB color2 = cyan;
+    CRGB color3 = yellow;
+
+    targetPalette = CRGBPalette16(
+      color1,   color3,   color2,   black,
+      color1,   color1,   color1,   black,
+      color2,   color2,   color2,   black,
       color1,   color1,   color1,   black );
   }
 
