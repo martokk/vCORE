@@ -1,5 +1,5 @@
 /*
-vCORE Universal IoT Device v0.7.10
+vCORE Universal IoT Device v1.4.28
   - mike.villarreal@outlook.com
 
 */
@@ -28,17 +28,12 @@ vCORE Universal IoT Device v0.7.10
   #define TOTAL_IR_TRANSMITTERS     0         // 0 or 1 transmitter supported.
   #define IR_TRANSMITTER1_PIN       0         // Arduno pin
 
-  /*--------- AIR FRESHENER ------------*/
-  #define TOTAL_AIR_FRESHENER       0         // 0 or 1 Buttons to reset device
-  #define AIR_FRESHENER_PIN         0         // Arduno pin
-  #define AIR_FRESHENER_BUTTON_PIN  0         // Arduno pin
-
 /********** LEDs ***************************************/
   #define TOTAL_LED_STRIPS          0         // Supports up to 5 seperate LED Strips
   #define LED_BRIGHTNESS_LIMIT      0         // Limit Brightnes Level (Max = 255)
 
   #define LED1_PIN                  0         // Arduno pin
-  #define LED1_COUNT                0         // Total LEDs
+  #define LED1_COUNT                1         // Total LEDs
 
 /********** PIR ***************************************/
   #define TOTAL_PIR_SENSORS         0
@@ -86,18 +81,19 @@ vCORE Universal IoT Device v0.7.10
   /*--------- IR TRANSMITTER ------------*/
     #define SUB_IR_SEND         "device/change_me/ir_send"
 
-  /*--------- AIR FRESHENER ------------*/
-    #define SUB_AIR_FRESHENER      "device/change_me/air_freshener"
-
   /*--------- LED STRIP 1 --------------*/
+    #define SUB_LED1                "device/change_me/led1"
     #define SUB_LED1_POWER          "device/change_me/led1/power"
     #define SUB_LED1_COLOR          "device/change_me/led1/color"
     #define SUB_LED1_BRIGHTNESS     "device/change_me/led1/brightness"
     #define SUB_LED1_EFFECT         "device/change_me/led1/effect"
     #define SUB_LED1_SPEED          "device/change_me/led1/speed"
+    #define SUB_LED1_PALETTE         "device/change_me/led1/palette"
 
+    #define PUB_LED1                "device/change_me/led1/pub"
     #define PUB_LED1_POWER          "device/change_me/led1/power/pub"
     #define PUB_LED1_COLOR          "device/change_me/led1/color/pub"
     #define PUB_LED1_BRIGHTNESS     "device/change_me/led1/brightness/pub"
     #define PUB_LED1_EFFECT         "device/change_me/led1/effect/pub"
     #define PUB_LED1_SPEED          "device/change_me/led1/speed/pub"
+    #define PUB_LED1_PALETTE         "device/change_me/led1/palette/pub"
