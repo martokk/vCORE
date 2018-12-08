@@ -56,6 +56,11 @@ int g_color = -1;
 int b_color = -1;
 int color_temp = -1;
 int brightness = -1;
+int current_brightness = -1;
+int temp_brightness =  -1;
+int delta_brightness = -1;
+int transition_every_n_milliseconds = -1;
+int transition_interval = millis();
 int speed = 5500;
 int transitionTime;
 int effect = -1;
@@ -321,6 +326,34 @@ void loop() {
   // Run WS8212FX service
   if (TOTAL_LED_STRIPS > 0) {
 
+    current_brightness = led1.getBrightness();
+    if (current_brightness != brightness) {
+
+      delta_brightness = current_brightness - brightness;
+
+      if (transition_every_n_milliseconds == -1) {
+        if (transitionTime == -1) {
+          transitionTime = 1;
+        }
+        transition_every_n_milliseconds = abs((transitionTime * 1000) / delta_brightness);
+        client.publish(PUB_DEBUG, String(transition_every_n_milliseconds).c_str(), true);
+        transition_interval = millis();
+      }
+
+      if (millis() > transition_interval) {
+        if (delta_brightness > 0) { temp_brightness = current_brightness - 1; }
+        else if (delta_brightness < 0) {temp_brightness = current_brightness + 1; }
+
+        current_brightness = temp_brightness;
+        led1.setBrightness(temp_brightness);
+
+        transition_interval = millis() + transition_every_n_milliseconds;
+      }
+
+    } else {
+      transitionTime = 1;
+      transition_every_n_milliseconds = -1;
+    }
     led1.service();
   }
 
@@ -728,17 +761,10 @@ void ShowLedState() {
     // Color Palette
     ProcessColorPalette();
 
-
-
-
-    // Brightness
-    led1.setBrightness(brightness);
-
     // Color
     led1.setColor(r_color,g_color,b_color);
 
     // Color Temp
-
 
     // Effect
     switch (effect) {
@@ -750,11 +776,8 @@ void ShowLedState() {
     // Speed
     led1.setSpeed(speed);
 
-    // if (paletteOn == true) {
-      led1.init();
-      led1.start();
-    // }
-
+    led1.init();
+    led1.start();
 
   } else {
     led1.stop();
