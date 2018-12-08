@@ -1,5 +1,5 @@
 /*
-vCORE Universal IoT Device v1.4.28
+vCORE Universal IoT Device v18.12.08
   - mike.villarreal@outlook.com
 
 */
@@ -729,7 +729,6 @@ void SendMqttState() {
         root["brightness"] = brightness;
       }
 
-
       // Effect
       if (effect != -1) {
         root["effect"] = led1.getModeName(led1.getMode());
@@ -797,7 +796,7 @@ uint16_t CustomEffect_fillnoise8() {
   // SCALE: Scale determines how far apart the pixels in our noise matrix are.
   // The higher the value of scale, the more "zoomed out" the noise will be.
   // 1 = zoomed in, you'll mostly see solid colors.
-  scale = 1000 / LED1_COUNT;
+  scale = 2000 / LED1_COUNT;
 
   // Process Color Palette Changes
   ProcessColorPalette();
@@ -1716,7 +1715,6 @@ void ConvertTempToRGB(unsigned int kelvin) {
   r_color_tmp = r_color;
   r_color = g_color;
   g_color = r_color_tmp;
-
 }
 
 // void BlendTowardsTargetPalette(){
