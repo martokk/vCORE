@@ -6,3 +6,5 @@
 .gcc-flags.json
 
 \.sconsign\.dblite
+
+src/\.fuse_hidden0005627100022862
